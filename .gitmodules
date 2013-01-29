@@ -1,0 +1,9 @@
+[submodule "libraries/Chronodot"]
+	path = libraries/Chronodot
+	url = https://github.com/Stephanie-Maks/Arduino-Chronodot
+[submodule "libraries/DHT"]
+	path = libraries/DHT
+	url = https://github.com/adafruit/DHT-sensor-library
+[submodule "libraries/Webduino"]
+	path = libraries/Webduino
+	url = https://github.com/sirleech/Webduino
