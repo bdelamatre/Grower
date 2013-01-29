@@ -24,13 +24,7 @@ Supported components:
 /**
 
 To-Do:
-> pull/push config from server
 > load/save config from EEPROM
-> push status data to server
-> LCD display
-> support soil temperature sensor ()
-> support air temperature sensor
-> support light sensor
 
 **/
 
