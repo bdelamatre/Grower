@@ -11,15 +11,15 @@ Supported components:
 
 **/
 
-#include <SPI.h>
+#include <SPI.h> 
 #include <Ethernet.h>
 #include <EthernetUdp.h>
-#include <WebServer.h>
-#include <Wire.h>
-#include <Chronodot.h>
+#include <WebServer.h> //Webduino by sirleech
+#include <Wire.h> 
+#include <Chronodot.h> //Chronodot by Stephanie-Maks
 #include <EEPROM.h>
 #include <SD.h>
-#include <DHT.h>
+#include <DHT.h> //DHT by AdaFruit
 
 /**
 
@@ -71,8 +71,6 @@ char* errorLogFileName = "error.log";
 //web server variables
 #define PREFIX ""
 WebServer webserver(PREFIX, 80);
-
-int serverIp;
 
 struct Schedule{
   String name;
