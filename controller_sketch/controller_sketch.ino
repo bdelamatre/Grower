@@ -11,10 +11,15 @@ Supported components:
 
 **/
 
+/**
+For non-standard libraries copy submodules included under FatRabbitGarden/libraries/ into your Arduino IDE libraries/ folder.
+**/
 #include <SPI.h> 
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+#include <Base64.h> //Base64 by 
 #include <WebServer.h> //Webduino by sirleech
+#include "avr/pgmspace.h" // new include
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
 #include <EEPROM.h>
@@ -38,8 +43,8 @@ const int maxSchedules = 3;
 const int maxZones = 3; 
 const int maxSensors = 3;
 
-//clock variables
-Chronodot RTC; //fix-me: upgrade to Time.h? 
+//RTC
+Chronodot RTC;
 
 //ntp variables
 const int NTP_PACKET_SIZE= 48;
@@ -47,11 +52,14 @@ byte ntpPacketBuffer[ NTP_PACKET_SIZE];
 
 //ethernet tcp variables
 int ethernetHasConfig = 0;
-EthernetClient client;
 
 //ethernet udp variables
 EthernetUDP Udp;
 unsigned int udpPort = 8888;
+
+//web server variables
+#define PREFIX ""
+WebServer webserver(PREFIX, 80);
 
 // SD variables
 // On the Ethernet Shield, CS is pin 4. Note that even if it's not
@@ -68,27 +76,18 @@ char* sensorLogFileName = "sensor.log";
 char* zoneLogFileName = "zone.log";
 char* errorLogFileName = "error.log";
 
-//web server variables
-#define PREFIX ""
-WebServer webserver(PREFIX, 80);
-
 struct Schedule{
   String name;
   int type; //0=off, 1=timer, 2=soil moisture, 3=temperature
-  int zones[maxZones]; //zone id
+  int zones[maxZones]; //zone id, 0 to maxZones specified
   int zonesRunType; //0=series, 1=parallel
-  int sensors[maxSensors]; //zone id
+  int sensors[maxSensors]; //zone id, 0 to maxSensors specified
   int timerStartWeekdays[7]; //1-7
   int timerStartHours[24]; //1-24
   int timerStartMinutes[60];//1-60
-  int timerDurationSeconds;
-  int moistureMin; //analogRead, will kick on when this value is reached
-  int moistureMax; //analogRead, will kick off when this value is reached
-  int temperatureMin;
-  int temperatureMax;
-  int statusRun; //0=no,1=yes
-  unsigned long statusRunStarted; //used to determine if a running schedules needs to stop
-  int statusLastRunMinute; //prevents rerunning a timer with duration less than a minute
+  int valueMin; //will turn zones on when this value is reached by the specified sensors
+  int valueMax; //will turn zones off when this value is reached by the specified sensors
+  int isRunning; //0=no,1=yes
 };
 
 struct Zone{
@@ -96,9 +95,8 @@ struct Zone{
   int type; //0=off, 1=5v relay
   int pin;
   int safetyOffAfterMinutes;
-  int statusRun; //0=off, 1=on
-  int statusRunType; //0=unknown, 1=schedule, 2=manual
-  unsigned long statusRunStarted;
+  int isRunning; //0=off, 1=on
+  int statusRunStarted;
   int statusRunBySchedule;
   int statusSafetyOff;
 };
@@ -112,14 +110,16 @@ struct Sensor{
   int frequencyLogSeconds; //0=every log
   unsigned long statusValue;
   unsigned long statusValue2;
-  unsigned long statusLastChecked;
-  unsigned long statusLastLogged;
+  int statusLastChecked;
+  int statusLastLogged;
 };
 
-#define CONFIG_VERSION "ls1"
+#define CONFIG_VERSION "1v1"
 #define CONFIG_START 32
 struct Config{
   char version[4];
+  String adminUsername;
+  String adminPassword;
   unsigned long utcOffset;
   boolean dhcp;
   IPAddress clientAddress;
@@ -133,6 +133,8 @@ struct Config{
 } 
 config={
   CONFIG_VERSION,
+  "admin",
+  "admin",
   -6,
   true,
   (0,0,0,0),
@@ -194,16 +196,16 @@ void setup() {
   config.schedules[0].name="Heaters";
   config.schedules[0].type=3;
   config.schedules[0].zones[0] = 1;
-  config.schedules[0].temperatureMin = 76;
-  config.schedules[0].temperatureMax = 78;
+  config.schedules[0].valueMin = 76;
+  config.schedules[0].valueMax = 78;
   config.schedules[0].sensors[0] = 1;
   
   //watering schedule - moisture level
   config.schedules[1].name="Misting (Watering)";
   config.schedules[1].type=0;
   config.schedules[1].zones[0] = 2;
-  config.schedules[1].moistureMin = 500;
-  config.schedules[1].moistureMax = 600;
+  config.schedules[1].valueMin = 500;
+  config.schedules[1].valueMax = 600;
   config.schedules[1].sensors[0] = 3;
   
   //light schedule - timer
@@ -251,6 +253,7 @@ void setup() {
   initNtp(debug);
   initSensors(debug);
   initZones(debug);
+  loadConfig(debug);
  
   Serial.println("==========================================");
 }

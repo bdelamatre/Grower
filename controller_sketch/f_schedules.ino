@@ -58,16 +58,16 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,DateTime checkTime){
     }
     
     if(run==1){
-      checkingSchedule.statusRun = 1;
-      checkingSchedule.statusRunStarted = checkTime.unixtime();
-      checkingSchedule.statusLastRunMinute = minute;
+      checkingSchedule.isRunning = 1;
+      //checkingSchedule.statusRunStarted = checkTime.unixtime();
+      //checkingSchedule.statusLastRunMinute = minute;
       //addScheduleLog(checkingSchedule,checkTime,"starting","timer");
-      turnScheduleZonesOn(checkingSchedule,checkTime);
+      turnScheduleZonesOn(checkingSchedule,checkTime,debug);
     }else{
-      checkingSchedule.statusRun = 0;
-      checkingSchedule.statusRunStarted = 0;
+      checkingSchedule.isRunning = 0;
+      //checkingSchedule.statusRunStarted = 0;
       //addScheduleLog(checkingSchedule,checkTime,"ending","timer");
-      turnScheduleZonesOff(checkingSchedule,checkTime);
+      turnScheduleZonesOff(checkingSchedule,checkTime,debug);
     }
 
 }
@@ -90,15 +90,15 @@ int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, DateTime checkT
    }
         
   //compare
-  if(soilMoisture >= checkingSchedule.moistureMax){
+  if(soilMoisture >= checkingSchedule.valueMax){
     //moisture high enough, turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime);
-  }else if(soilMoisture <= checkingSchedule.moistureMin){
+    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+  }else if(soilMoisture <= checkingSchedule.valueMin){
     //moisture above target, turn on
-    turnScheduleZonesOn(checkingSchedule,checkTime);
+    turnScheduleZonesOn(checkingSchedule,checkTime,debug);
   }else{
     //not sure, so turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime);
+    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
   }
   
   
@@ -124,15 +124,15 @@ int checkScheduleTemperature(struct Schedule &checkingSchedule, DateTime checkTi
      
     
   //compare
-  if(temperature >= checkingSchedule.temperatureMax){
+  if(temperature >= checkingSchedule.valueMax){
     //moisture high enough, turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime);
-  }else if(temperature <= checkingSchedule.temperatureMin){
+    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+  }else if(temperature <= checkingSchedule.valueMin){
     //moisture above target, turn on
-    turnScheduleZonesOn(checkingSchedule,checkTime);
+    turnScheduleZonesOn(checkingSchedule,checkTime,debug);
   }else{
     //not sure, so turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime);
+    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
   }
   
 }
