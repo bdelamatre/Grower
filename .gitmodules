@@ -7,3 +7,6 @@
 [submodule "libraries/Webduino"]
 	path = libraries/Webduino
 	url = https://github.com/sirleech/Webduino
+[submodule "libraries/Base64"]
+	path = libraries/Base64
+	url = https://github.com/adamvr/arduino-base64
