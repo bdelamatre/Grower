@@ -53,28 +53,36 @@ String displayWeekday(int i){
   }
 }
 
-/*String elementUtcOffset(String name, int value){
-  String html = "<select name=\"utc_";
+
+String label(String name){
+  
+  String html = "<label>";
   html += name;
-  html += " >";
-  for(int i = -12;i<15;i++){
-    html += "<option value=\"";
-    html += i;
-    html += "\"";
-    if(value==i){
-      html+= " selected";
-    }
-    html += ">";
-    if(i>0){
-      html += "+";
-    }else{
-      html += "-";
-    }
-    html += i;
-    html +=" </option>";
-  }
+  html += "</label>";
   return html;
 }
+
+String elementUtcOffset(String name, int value){
+    String html;
+    html += "<select name=\"utc_";
+    html += name;
+    html += "\" >";
+    for(int i = -12;i<15;i++){
+      html += "<option value=\"";
+      html += i;
+      html += "\"";
+      if(value==i){
+        html+= " selected";
+      }
+      html += ">";
+      if(i>0){
+        html += "+";
+      }
+      html += i;
+      html +=" </option>";
+    }
+    return html;
+  }
 
 String elementText(String name, String value){
   String html = "<input type=\"text\" name=\"text_";
@@ -95,24 +103,27 @@ String elementInt(String name, int value){
 }
 
 String elementIp(String name,IPAddress ip){
-  String html = "<input type=\"text\" name=\"text_";
+  String html = "<input type=\"text\" size=\"3\" maxlength=\"3\" name=\"text_";
   html += name;
-  html += "\" value=\"";
+  html += "1\" value=\"";
   html += ip[0];
   html += "\"/>";
-  html += "<input type=\"text\" name=\"text_";
+  
+  html += "<input type=\"text\" size=\"3\" maxlength=\"3\" name=\"text_";
   html += name;
-  html += "\" value=\"";
+  html += "2\" value=\"";
   html += ip[1];
   html += "\"/>";
-  html += "<input type=\"text\" name=\"text_";
+  
+  html += "<input type=\"text\" size=\"3\" maxlength=\"3\" name=\"text_";
   html += name;
-  html += "\" value=\"";
+  html += "3\" value=\"";
   html += ip[2];
   html += "\"/>";
-  html += "<input type=\"text\" name=\"text_";
+  
+  html += "<input type=\"text\" size=\"3\" maxlength=\"3\" name=\"text_";
   html += name;
-  html += "\" value=\"";
+  html += "4\" value=\"";
   html += ip[3];
   html += "\"/>";
   return html;
@@ -121,14 +132,14 @@ String elementIp(String name,IPAddress ip){
 String elementCheckbox(String name, boolean checked){
   String html = "<input type=\"checkbox\" name=\"check_";
   html += name;
-  html += " />";
+  html += "\" />";
   return html;
 }
 
 String elementScheduleType(String name, int type){
   String html = "<select name=\"type_";
   html += name;
-  html += " >";
+  html += "\" >";
   for(int i = 0;i<4;i++){
     html += "<option value=\"";
     html += i;
@@ -137,12 +148,7 @@ String elementScheduleType(String name, int type){
       html+= " selected";
     }
     html += ">";
-    if(i>0){
-      html += "+";
-    }else{
-      html += "-";
-    }
-    //html += scheduleTypeDisplayName(i);
+    html += scheduleTypeDisplayName(config.schedules[i]);
     html +=" </option>";
   }
   return html;
@@ -151,7 +157,7 @@ String elementScheduleType(String name, int type){
 String elementZoneType(String name, int type){
   String html = "<select name=\"type_";
   html += name;
-  html += " >";
+  html += "\" >";
   for(int i = 0;i<4;i++){
     html += "<option value=\"";
     html += i;
@@ -160,27 +166,26 @@ String elementZoneType(String name, int type){
       html+= " selected";
     }
     html += ">";
-    if(i>0){
-      html += "+";
-    }else{
-      html += "-";
-    }
-    //html += zoneTypeDisplayName(i);
+    html += zoneTypeDisplayName(config.zones[i]);
     html +=" </option>";
   }
   return html;
 }
 
 String elementZones(String name, int* type){
+  String html = "";
+  return html;
 }
 
 String elementZonesRunType(String name, int type){
+  String html = "";
+  return html;
 }
 
 String elementSensorType(String name, int type){
   String html = "<select name=\"type_";
   html += name;
-  html += " >";
+  html += "\" >";
   for(int i = 0;i<5;i++){
     html += "<option value=\"";
     html += i;
@@ -189,37 +194,49 @@ String elementSensorType(String name, int type){
       html+= " selected";
     }
     html += ">";
-    if(i>0){
-      html += "+";
-    }else{
-      html += "-";
-    }
-    //html += sensorTypeDisplayName(i);
+    html += sensorTypeDisplayName(config.sensors[i]);
     html +=" </option>";
   }
   return html;
 }
 
 String elementSensors(String name, int* type){
+  String html = "";
+  return html;
 }
 
 String elementTimerDays(String name, int* type){
+  String html = "";
+  return html;
 }
 String elementTimerHours(String name, int* type){
+  String html = "";
+  return html;
 }
 
 String elementTimerMinutes(String name, int* type){
+  String html = "";
+  return html;
 }
 
 #define NAMELEN 32
 #define VALUELEN 32
 
-/void htmlAdmin(WebServer &server, WebServer::ConnectionType type, char *, bool)
+void htmlAdmin(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
-  
-  if (server.checkCredentials("YWRtaW46YWRtaW4="))
+    
+  char* authentication = getUserPassInBase64(config.adminUsername,config.adminPassword);
+
+  if (server.checkCredentials(authentication))
   {
     server.httpSuccess();
+    
+    server.printP(startOpenAdmin);
+    server.printP(style);
+    server.printP(startClose);
+    server.printP(headerAdmin);
+      
+    
     if(type == WebServer::POST){
       
       URLPARAM_RESULT rc;
@@ -241,95 +258,190 @@ String elementTimerMinutes(String name, int* type){
     
     if (type != WebServer::HEAD){
       
-      server.println("<form type=\"post\">");
+      P(formStart) = "<form type=\"post\">";
+      server.printP(formStart);
+      
+      P(br) = "<br/>";
+      
+      server.printP(generalSectionOpen);
+      server.printP(articleOpen);
+      
       //show form
       //admin username
+      server.println(label("Username"));
       server.println(elementText("adminUsername",config.adminUsername));
+      server.printP(br);
       //admin password
+      server.println(label("Password"));
       server.println(elementText("adminPassword",config.adminPassword));
+      server.printP(br);
       //utc offset
+      server.println(label("UTC"));
       server.println(elementUtcOffset("utcOffset",config.utcOffset));
+      server.printP(br);
       //dhcp?
+      server.println(label("Use DHCP?"));
       server.println(elementCheckbox("dhcp",config.dhcp));
+      server.printP(br);
       //ip address
+      server.println(label("Static Address"));
       server.println(elementIp("clientAddress",config.clientAddress));
+      server.printP(br);
       //ip netmask
+      server.println(label("Static Netmask"));
       server.println(elementIp("clientNetmask",config.clientNetmask));
+      server.printP(br);
       //ip gateway
+      server.println(label("Static Gateway"));
       server.println(elementIp("clientGateway",config.clientGateway));
+      server.printP(br);
       //hardwaremac
       //ntpserver
+      server.println(label("Use NTP?"));
+      server.println(elementCheckbox("ntp",config.ntp));
+      server.printP(br);
+      server.println(label("NTP Server"));
       server.println(elementIp("ntpServer",config.ntpServer));
-      //schedules
-      for(int i=0;i<maxSchedules;i++){
-        //schedule type
-        String scheduleName = "schedule[";
-        scheduleName += i;
-        scheduleName += "]";
-        server.println(elementScheduleType(scheduleName+"[\"type\"]",config.schedules[i].type));
-        //name
-        server.println(elementText(scheduleName+"[\"name\"]",config.schedules[i].name));
-        //zones
-        server.println(elementZones(scheduleName+"[\"zones\"]",config.schedules[i].zones));
-        //zones run type
-        server.println(elementZonesRunType(scheduleName+"[\"zonesRunType\"]",config.schedules[i].zonesRunType));
-        //sensors
-        server.println(elementSensors(scheduleName+"[\"sensors\"]",config.schedules[i].sensors));
-        //timer days
-        server.println(elementTimerDays(scheduleName+"[\"timerStartWeekdays\"]",config.schedules[i].timerStartWeekdays));
-        //timer hours
-        server.println(elementTimerHours(scheduleName+"[\"timerStartHours\"]",config.schedules[i].timerStartHours));
-        //timer minutes
-        server.println(elementTimerMinutes(scheduleName+"[\"timerStartMinutes\"]",config.schedules[i].timerStartMinutes));
-        //valueMin
-        server.println(elementInt(scheduleName+"[\"valueMin\"]",config.schedules[i].valueMin));
-        //valueMax
-        server.println(elementInt(scheduleName+"[\"valueMax\"]",config.schedules[i].valueMax));
-      }
+      server.printP(br);
+      
+      server.printP(articleClose);
+      server.printP(sectionEnd);
+            
+      server.printP(sensorSectionOpen);
+      
       //sensors
       for(int i=0;i<maxSensors;i++){
+        
+        server.printP(articleOpen);
+        
         String sensorName = "sensors[";
         sensorName += i;
         sensorName += "]";
         //type; //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light
-        server.println(elementSensorType(sensorName+"[\"type\"]",config.sensors[i].type));
+        server.println(label("Sensor Type"));
+        server.println(elementSensorType(sensorName+"[type]",config.sensors[i].type));
+        server.printP(br);
         //name;
-        server.println(elementText(sensorName+"[\"name\"]",config.sensors[i].name));
+        server.println(label("Sensor Name"));
+        server.println(elementText(sensorName+"[name]",config.sensors[i].name));
+        server.printP(br);
         //pin;
-        server.println(elementInt(sensorName+"[\"pin\"]",config.sensors[i].pin));
+        server.println(label("Sensor Pin"));
+        server.println(elementInt(sensorName+"[pin]",config.sensors[i].pin));
+        server.printP(br);
         //pin2;
-        server.println(elementInt(sensorName+"[\"pin2\"]",config.sensors[i].pin2));
+        server.println(label("Sensor Pin2"));
+        server.println(elementInt(sensorName+"[pin2]",config.sensors[i].pin2));
+        server.printP(br);
         //frequencyCheckSeconds; //0=every loop
-        server.println(elementInt(sensorName+"[\"frequencyCheckSeconds\"]",config.sensors[i].frequencyCheckSeconds));
+        server.println(label("Check Frequency (Seconds)"));
+        server.println(elementInt(sensorName+"[frequencyCheckSeconds]",config.sensors[i].frequencyCheckSeconds));
+        server.printP(br);
         //frequencyLogSeconds; //0=every log
-        server.println(elementInt(sensorName+"[\"frequencyLogSeconds\"]",config.sensors[i].frequencyLogSeconds));
+        server.println(label("Log Frequency (Seconds)"));
+        server.println(elementInt(sensorName+"[frequencyLogSeconds]",config.sensors[i].frequencyLogSeconds));
+        server.printP(br);
+      
+        server.printP(articleClose);
+      
       }
+      server.printP(sectionEnd);
+      server.printP(zoneSectionOpen);
       //zones
       for(int i=0;i<maxZones;i++){
+        
+        server.printP(articleOpen);
+        
         String zoneName = "zones[";
         zoneName += i;
         zoneName += "]";
         //int type; //0=off, 1=5v relay
-        server.println(elementZoneType(zoneName+"[\"type\"]",config.zones[i].type));
+        server.println(label("Zone Type"));
+        server.println(elementZoneType(zoneName+"[type]",config.zones[i].type));
+        server.printP(br);
         //name;
-        server.println(elementText(zoneName+"[\"name\"]",config.zones[i].name));
+        server.println(label("Zone Name"));
+        server.println(elementText(zoneName+"[name]",config.zones[i].name));
+        server.printP(br);
         //pin;
-        server.println(elementInt(zoneName+"[\"pin\"]",config.zones[i].pin));
+        server.println(label("Zone Pin"));
+        server.println(elementInt(zoneName+"[pin]",config.zones[i].pin));
+        server.printP(br);
         //safetyOffAfterMinutes;
-        server.println(elementInt(zoneName+"[\"safetyOffAfterMinutes\"]",config.zones[i].safetyOffAfterMinutes));
+        server.println(label("Safety Off (Minutes)"));
+        server.println(elementInt(zoneName+"[safetyOffAfterMinutes]",config.zones[i].safetyOffAfterMinutes));
+        server.printP(br);
+        
+        server.printP(articleClose);
       }
+      server.printP(sectionEnd);
+      
+      server.printP(scheduleSectionOpen);
+      
+      //schedules
+      for(int i=0;i<maxSchedules;i++){
+      
+        server.printP(articleOpen);
+      
+        //schedule type
+        String scheduleName = "schedule[";
+        scheduleName += i;
+        scheduleName += "]";
+        server.println(label("Schedule Type"));
+        server.println(elementScheduleType(scheduleName+"[type]",config.schedules[i].type));
+        server.printP(br);
+        //name
+        server.println(label("Schedule Name"));
+        server.println(elementText(scheduleName+"[name]",config.schedules[i].name));
+        server.printP(br);
+        //zones
+        server.println(label("Zones"));
+        server.println(elementZones(scheduleName+"[zones]",config.schedules[i].zones));
+        server.printP(br);
+        //zones run type
+        server.println(label("Zone Run Type"));
+        server.println(elementZonesRunType(scheduleName+"[zonesRunType]",config.schedules[i].zonesRunType));
+        server.printP(br);
+        //sensors
+        server.println(label("Sensors"));
+        server.println(elementSensors(scheduleName+"[sensors]",config.schedules[i].sensors));
+        server.printP(br);
+        //timer days
+        server.println(label("Run Weekdays"));
+        server.println(elementTimerDays(scheduleName+"[timerStartWeekdays]",config.schedules[i].timerStartWeekdays));
+        server.printP(br);
+        //timer hours
+        server.println(label("Run Hours"));
+        server.println(elementTimerHours(scheduleName+"[timerStartHours]",config.schedules[i].timerStartHours));
+        server.printP(br);
+        //timer minutes
+        server.println(label("Run Minutes"));
+        server.println(elementTimerMinutes(scheduleName+"[timerStartMinutes]",config.schedules[i].timerStartMinutes));
+        server.printP(br);
+        //valueMin
+        server.println(label("Minimum Value"));
+        server.println(elementInt(scheduleName+"[valueMin]",config.schedules[i].valueMin));
+        server.printP(br);
+        //valueMax
+        server.println(label("Maximum Value"));
+        server.println(elementInt(scheduleName+"[valueMax]",config.schedules[i].valueMax));
+        server.printP(br);
+        
+        server.printP(articleClose);
+      }
+      server.printP(sectionEnd);
+      
+      server.println("<button type=\"submit\" />");
+      server.println("</form>");
     }
-      //server.println("<button type=\"submit\" />");
-      //server.println("</form>");
     
   }
   else
   {
     server.httpUnauthorized();
   }
-}*/
+}
 
-    
 void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
   
@@ -345,16 +457,10 @@ void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
   
       DateTime t = getLocalTime();
   
-      P(startOpen) = "<!DOCTYPE HTML><html><head><meta http-equiv=\"refresh\" content=\"300\"/><title>Status - Fat Rabbit Garden</title></head>";
       server.printP(startOpen);
-      P(style) = "<style> .mainSection{} section{width:400px;margin:auto;} article{margin:5px;padding:5px;} #general article{border:2px solid #000000;} #schedules article{border:2px solid #000000;} #sensors article{border:2px solid #000000;} #zones article{border:2px solid #000000;}</style>";
       server.printP(style);
-      P(startClose) = "<body style=\"text-align:center;\">";
       server.printP(startClose);
-      P(header) = "<header><h1>Fat Rabbit Farm - Garden Controller</h1></header>";
       server.printP(header);
-      
-      P(generalSectionOpen) = "<h2>General</h2><section id=\"general\" class=\"mainSection\">Date/Time: ";
       server.printP(generalSectionOpen);
       
       server.print(t.year(), DEC);
@@ -379,7 +485,6 @@ void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
       server.println(")");
       server.println("</section>");
       
-      P(sensorSectionOpen) = "<h2>Sensors</h2><section id=\"sensors\" class=\"mainSection\">";
       server.printP(sensorSectionOpen);
       
       for(int i=0;i<maxSensors;i++){
@@ -417,10 +522,8 @@ void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
         
       }
   
-      P(sensorSectionClose) = "</section><a href=\"/sensor-log.csv\" download=\"sensor-log.csv\">Donwload Sensor Log</a>";
       server.printP(sensorSectionClose);
   
-      P(zoneSectionOpen) = "<h2>Zones</h2><section id=\"zones\" class=\"mainSection\">";
       server.printP(zoneSectionOpen);
       
       for(int i=0;i<maxZones;i++){
@@ -444,10 +547,8 @@ void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
         
       }
       
-      P(zoneSectionClose) = "</section><a href=\"/zone-log.csv\" download=\"zone-log.csv\">Download Zone Log</a>";
       server.printP(zoneSectionClose);
       
-      P(scheduleSectionOpen) = "<h2>Schedules</h2><section id=\"schedules\" class=\"mainSection\">";
       server.printP(scheduleSectionOpen);
       
       for(int i=0;i<maxSchedules;i++){
@@ -542,9 +643,9 @@ void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
         
       }
   
-      server.println("</section>");   
+      server.printP(sectionEnd);
      
-      P(footer) = "<footer>&copy;Fat Rabbit Farms</footer>";
+      P(footer) = "<footer>&copy;Fat Rabbit Farms<br/><a href=\"https://github.com/bdelamatre/FatRabbitGarden\">GIT Source</a></footer>";
       server.printP(footer);
       P(ending) = "</head></html>";
       server.printP(ending);

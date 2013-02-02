@@ -1,7 +1,7 @@
 /********************************************
   Initialization Functions
 ********************************************/
-
+        
 void initRtc(){
 
   //initialize clock
@@ -63,7 +63,7 @@ void initEthernet(){
         //initialize webserver
         webserver.setDefaultCommand(&htmlStatus);
         webserver.addCommand("status.html", &htmlStatus);
-        //webserver.addCommand("admin.html", &htmlAdmin);
+        webserver.addCommand("config", &htmlAdmin);
         webserver.addCommand("sensor-log.csv", &sensorLog);
         webserver.addCommand("zone-log.csv", &zoneLog);
         webserver.begin();
@@ -72,6 +72,7 @@ void initEthernet(){
           Serial.print("OK");
           Serial.println();
         #endif
+        
         
     }
         

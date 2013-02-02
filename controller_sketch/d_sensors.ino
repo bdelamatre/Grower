@@ -32,6 +32,11 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
           checkingSensor.statusLastLogged = checkTime.unixtime();
         }
       }
+      
+      #if defined DEBUG
+        Serial.print("memfree=");
+        Serial.println(memoryFree());
+      #endif
     
       if(checkingSensor.type==1){
         //soil moisture

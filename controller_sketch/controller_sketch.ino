@@ -1,4 +1,19 @@
 /**
+
+For more information, check readme.txt
+
+File structure:
+controller_sketch  = variable definition, setup() and loop()
+a_web_pages        = web page functions used by Webduino. Must be included before Webduino init() or throws errors
+c_init             = contains *init() functions used in setup()
+d_sensors          = checkSensors() and related functions. Support for additional sensor types may be added here.
+e_zones            = functions for turning zones on/off
+f_schedules        = checkSchedules() and related functions. Support for additional schedule types may be added here.
+g_log              = functions used for logging to SD
+h_config           = functions for read/write EEPROM config
+i_display          = various functions used for fomatting text
+z_ntp              = ntp functions
+
 Required components:
 1. RTC - Chronodot (https://www.adafruit.com/products/255)
 
@@ -8,10 +23,6 @@ Supported components:
 2. Analog Soil Moisture Sensors:
   a. Check Ebay, or build a zinc nail sensor
   
-
-**/
-
-/**
 For non-standard libraries copy submodules included under FatRabbitGarden/libraries/ into your Arduino IDE libraries/ folder.
 **/
 #include <SPI.h> 
@@ -25,28 +36,12 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <SD.h>
 #include <DHT.h> //DHT by AdaFruit
 
-/**
-
-To-Do:
-> load/save config from EEPROM
-
-**/
-
 //#define DEBUG
-//boolean debug = true;
-//boolean debugNoEthernet = false;
 
-//increasing this will increase the EEPROM usage.
-//3,3,3 = <1000
-//12,12,12 = <4000
-const int maxSchedules = 3; 
-const int maxZones = 3; 
-const int maxSensors = 3;
-
-//RTC
+//rtc variable
 Chronodot RTC;
 
-//ntp variables`x`
+//ntp variables
 const int NTP_PACKET_SIZE= 48;
 byte ntpPacketBuffer[ NTP_PACKET_SIZE];
 
@@ -60,6 +55,10 @@ unsigned int udpPort = 8888;
 //web server variables
 #define PREFIX ""
 WebServer webserver(PREFIX, 80);
+const char* scheduleLogFileName = "schedule.log";
+const char* sensorLogFileName = "sensor.log";
+const char* zoneLogFileName = "zone.log";
+const char* errorLogFileName = "error.log";
 
 // SD variables
 // On the Ethernet Shield, CS is pin 4. Note that even if it's not
@@ -71,10 +70,16 @@ const int hardwareSelect = 53;
 Sd2Card card;
 SdVolume volume;
 SdFile root;
-char* scheduleLogFileName = "schedule.log";
-char* sensorLogFileName = "sensor.log";
-char* zoneLogFileName = "zone.log";
-char* errorLogFileName = "error.log";
+
+/*
+WARNING, increasing these will allow you to configure more 
+schedules, zones and sensors, but increase the RAM and EEPROM 
+usage. Be careful if increases these that you stay within your
+systems limits, or stability issue will occur.
+*/
+const int maxSchedules = 3; 
+const int maxZones = 3; 
+const int maxSensors = 3;
 
 struct Schedule{
   String name;
@@ -148,12 +153,29 @@ config={
   IPAddress(64, 236, 96, 53) //time.nist.gov
 };
 
+P(startOpen) = "<!DOCTYPE HTML><html><head><meta http-equiv=\"refresh\" content=\"300\"/><title>Status - Fat Rabbit Garden</title></head>";
+P(startOpenAdmin) = "<!DOCTYPE HTML><html><head><title>Configuration - Fat Rabbit Garden</title></head>";
+P(style) = "<style> .mainSection{} section{width:400px;margin:auto;} article{margin:5px;padding:5px;} #general article{border:2px solid #000000;} #schedules article{border:2px solid #000000;} #sensors article{border:2px solid #000000;} #zones article{border:2px solid #000000;}</style>";
+P(startClose) = "<body style=\"text-align:center;\">";
+P(header) = "<header><h1>Garden Controller</h1><a href=\"/config\">Configuration</a></header>";
+P(headerAdmin) = "<header><h1>Garden Controller</h1></header>";
+P(generalSectionOpen) = "<h2>General</h2><section id=\"general\" class=\"mainSection\">Date/Time: ";
+P(sensorSectionOpen) = "<h2>Sensors</h2><section id=\"sensors\" class=\"mainSection\">";
+P(sensorSectionClose) = "</section><a href=\"/sensor-log.csv\" download=\"sensor-log.csv\">Donwload Sensor Log</a>";
+P(zoneSectionOpen) = "<h2>Zones</h2><section id=\"zones\" class=\"mainSection\">";
+P(zoneSectionClose) = "</section><a href=\"/zone-log.csv\" download=\"zone-log.csv\">Download Zone Log</a>";
+P(scheduleSectionOpen) = "<h2>Schedules</h2><section id=\"schedules\" class=\"mainSection\">";
+P(sectionEnd) = "</section>";
+P(articleOpen) = "<article>";
+P(articleClose) = "</article>";
+      
 // the setup routine runs once when you press reset:
 void setup() {
 
   Serial.begin(9600);
     
   #if defined DEBUG
+    Serial.println(memoryFree());
     Serial.println("==========================================");
     Serial.println("|| Fat Rabbit Farm - Garden Controller  ||");
     Serial.println("==========================================");
@@ -190,16 +212,16 @@ void setup() {
   config.sensors[0].frequencyCheckSeconds = 5;
   config.sensors[0].frequencyLogSeconds = 300;
   
-  config.sensors[1].name="soil temperature";
+  config.sensors[1].name="Soil Temperature";
   config.sensors[1].type = 0;
   config.sensors[1].pin = 3;
-  config.sensors[0].frequencyCheckSeconds = 5;
+  config.sensors[1].frequencyCheckSeconds = 5;
   config.sensors[1].frequencyLogSeconds = 300;
 
   config.sensors[2].name="Soil Moisture";
   config.sensors[2].type = 1;
   config.sensors[2].pin = 1;
-  config.sensors[0].frequencyCheckSeconds = 5;
+  config.sensors[2].frequencyCheckSeconds = 5;
   config.sensors[2].frequencyLogSeconds = 300;
   
   //heat schedule - temperature
@@ -264,7 +286,8 @@ void setup() {
   initSensors();
   initZones();
     
-  #if defined DEBUG  
+  #if defined DEBUG 
+    Serial.println(memoryFree());
     Serial.println("==========================================");
   #endif
 }
