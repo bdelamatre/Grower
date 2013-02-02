@@ -2,26 +2,28 @@
   Check Sensors
 ********************************************/
 
-void checkSensors(DateTime checkTime, boolean debugMe){
+void checkSensors(DateTime checkTime){
   for(int i=0;i<maxSensors;i++){
-    checkSensor(config.sensors[i],checkTime, debugMe);
+    checkSensor(config.sensors[i],checkTime);
   }
 }
 
-void checkSensor(struct Sensor &checkingSensor, DateTime checkTime, boolean debugMe){
+void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
 
-  boolean logMe = true;
+  boolean logMe = false;
   
   if(checkingSensor.type==0){
     //sensor off
   }else{
     
-      if(checkingSensor.frequencyCheckSeconds>0){
+      if(checkingSensor.frequencyCheckSeconds>0 && checkingSensor.statusLastChecked>0){
         DateTime nextTime = DateTime(checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds);
         if(checkTime.unixtime() < nextTime.unixtime() && checkingSensor.statusLastChecked > 0){
           return;
         }
       }
+      
+      checkingSensor.statusLastChecked = checkTime.unixtime();
       
       if(checkingSensor.frequencyLogSeconds>0){
         DateTime nextTime = DateTime(checkingSensor.statusLastLogged+checkingSensor.frequencyLogSeconds);
@@ -61,7 +63,7 @@ int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, bo
   checkingSensor.statusValue = smoothed / 50;
   
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime,"","");
+      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }
 }
 
@@ -70,7 +72,7 @@ int checkSensorSoilTemperature(struct Sensor &checkingSensor,DateTime checkTime,
   //fix-me: add support
   
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime,"","");
+      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }
 }
 
@@ -94,13 +96,13 @@ int checkSensorAirTemperature(struct Sensor &checkingSensor,DateTime checkTime, 
   }
   
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime,"","");
+      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }
 }
 
 int checkSensorLight(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
     
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime,"","");
+      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }
 }

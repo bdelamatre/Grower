@@ -5,7 +5,7 @@ void checkConfig(){
 }
 
 
-void loadConfig(boolean debugMe) {
+/*void loadConfig(boolean debugMe) {
   // To make sure there are settings, and they are YOURS!
   // If nothing is found it will use the default settings.
   if(debugMe==true){
@@ -30,4 +30,4 @@ void loadConfig(boolean debugMe) {
 void saveConfig() {
   for (unsigned int t=0; t<sizeof(config); t++)
     EEPROM.write(CONFIG_START + t, *((char*)&config + t));
-}
+}*/

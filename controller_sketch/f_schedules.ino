@@ -2,14 +2,14 @@
   Check Schedules
 ********************************************/
 
-void checkSchedules(DateTime checkTime, boolean debugMe){
+void checkSchedules(DateTime checkTime){
 
   for(int i=0;i<maxSchedules;i++){
-    checkSchedule(config.schedules[i],checkTime,debugMe);
+    checkSchedule(config.schedules[i],checkTime);
   }
 }
 
-void checkSchedule(struct Schedule &checkingSchedule,DateTime checkTime, boolean debugMe){
+void checkSchedule(struct Schedule &checkingSchedule,DateTime checkTime){
 
   if(checkingSchedule.type==0){
     //schedule off
@@ -62,12 +62,12 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,DateTime checkTime){
       //checkingSchedule.statusRunStarted = checkTime.unixtime();
       //checkingSchedule.statusLastRunMinute = minute;
       //addScheduleLog(checkingSchedule,checkTime,"starting","timer");
-      turnScheduleZonesOn(checkingSchedule,checkTime,debug);
+      turnScheduleZonesOn(checkingSchedule,checkTime);
     }else{
       checkingSchedule.isRunning = 0;
       //checkingSchedule.statusRunStarted = 0;
       //addScheduleLog(checkingSchedule,checkTime,"ending","timer");
-      turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+      turnScheduleZonesOff(checkingSchedule,checkTime);
     }
 
 }
@@ -92,13 +92,13 @@ int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, DateTime checkT
   //compare
   if(soilMoisture >= checkingSchedule.valueMax){
     //moisture high enough, turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOff(checkingSchedule,checkTime);
   }else if(soilMoisture <= checkingSchedule.valueMin){
     //moisture above target, turn on
-    turnScheduleZonesOn(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOn(checkingSchedule,checkTime);
   }else{
     //not sure, so turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOff(checkingSchedule,checkTime);
   }
   
   
@@ -126,13 +126,13 @@ int checkScheduleTemperature(struct Schedule &checkingSchedule, DateTime checkTi
   //compare
   if(temperature >= checkingSchedule.valueMax){
     //moisture high enough, turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOff(checkingSchedule,checkTime);
   }else if(temperature <= checkingSchedule.valueMin){
     //moisture above target, turn on
-    turnScheduleZonesOn(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOn(checkingSchedule,checkTime);
   }else{
     //not sure, so turn off
-    turnScheduleZonesOff(checkingSchedule,checkTime,debug);
+    turnScheduleZonesOff(checkingSchedule,checkTime);
   }
   
 }

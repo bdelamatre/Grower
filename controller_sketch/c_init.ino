@@ -2,22 +2,22 @@
   Initialization Functions
 ********************************************/
 
-void initRtc(boolean debugMe){
+void initRtc(){
 
   //initialize clock
-  if(debugMe){
+  #if defined DEBUG  
     Serial.print("|| RTC...");
-  }
+  #endif
   
   Wire.begin();
   RTC.begin();
   
-  if(debugMe){
-    Serial.print("OK (");
-    Serial.print(getDateTime(getLocalTime()));
+  #if defined DEBUG 
+    Serial.print("OK (");  
+    printDateTimeToSerial(getLocalTime());
     Serial.print(")");
     Serial.println();
-  }
+  #endif
 
 }
 
@@ -26,14 +26,14 @@ DateTime getLocalTime(){
   return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
 }
 
-void initEthernet(boolean debugMe){
+void initEthernet(){
 
   //initialize ethernet
-  if(debugMe){
+  #if defined DEBUG  
     Serial.print("|| TCP...");
-  }
+  #endif
   
-  if(debugMe==false || (debugMe=true && debugNoEthernet==false)){
+  if(config.hasEthernet){
 
     if(config.dhcp==true){
       ethernetHasConfig = Ethernet.begin(config.hardwareMac);
@@ -45,99 +45,100 @@ void initEthernet(boolean debugMe){
     if(ethernetHasConfig==1){
         
         //show ip
-        if(debugMe){
+        #if defined DEBUG  
           Serial.print("OK (");
-          Serial.print(getIp());
+          printIpToSerial(Ethernet.localIP());
           Serial.print(")");
           Serial.println();
-        }
+        #endif;
         
         //initialize udp
         Udp.begin(udpPort);
-        if(debugMe){
+        #if defined DEBUG  
           Serial.print("|| UDP...");
           Serial.print("OK");
           Serial.println();
-        }
+        #endif
         
         //initialize webserver
         webserver.setDefaultCommand(&htmlStatus);
         webserver.addCommand("status.html", &htmlStatus);
+        //webserver.addCommand("admin.html", &htmlAdmin);
         webserver.addCommand("sensor-log.csv", &sensorLog);
         webserver.addCommand("zone-log.csv", &zoneLog);
         webserver.begin();
-        if(debugMe){
+        #if defined DEBUG  
           Serial.print("|| WEB...");
           Serial.print("OK");
           Serial.println();
-        }
+        #endif
         
-      }else{
-        if(debugMe){
-          Serial.println("FAIL");
-        }
-      }
-  
+    }
+        
   }else{
-      if(debugMe){
-         Serial.println("OFF");
-      }
+    #if defined DEBUG  
+      Serial.println("DISABLED");
+    #endif
   }
     
 }
 
-void initNtp(boolean debugMe){
+void initNtp(boolean enabled){
 
   //initialize NTP
-  if(debugMe){
-    Serial.print("|| NTP...");
-  }
+  #if defined DEBUG  
+    Serial.print("|| NTP (");
+    printIpToSerial(config.ntpServer);
+    Serial.print(")...");
+  #endif
   
-  if(ethernetHasConfig==1){
+  if(enabled==false){
+    #if defined DEBUG  
+      Serial.println("DISABLED");
+    #endif
+  }else if(enabled==true && ethernetHasConfig==1){
     
     sendNTPpacket(config.ntpServer);
     delay(5000);
     unsigned long timeSyncedUnix = readNTPpacket();
     if(timeSyncedUnix<1){
-      if(debugMe){
-        Serial.print("FAIL (invalid time)");
-      }
+      #if defined DEBUG  
+        Serial.print("FAIL (invalid time) ");
+        Serial.println(timeSyncedUnix);
+      #endif
     }else{
       RTC.adjust(DateTime(timeSyncedUnix)); //adjusts RTC time to NTP time
       DateTime timeLocal = DateTime(timeSyncedUnix + (config.utcOffset*60*60));
-      if(debugMe){
+      #if defined DEBUG  
           Serial.print("OK (");
           Serial.print("Synced to ");
-          Serial.print(getDateTime(timeLocal));
-          Serial.print(")");
-      }   
+          printDateTimeToSerial(timeLocal);
+          Serial.println(")");
+      #endif  
     }
     
   }else{
-    if(debugMe){
-      Serial.print("FAIL (no ethernet)");
-    }
-  }
-  if(debugMe){
-    Serial.println();
+    #if defined DEBUG  
+      Serial.println("FAIL (no ethernet)");
+    #endif
   }
 
 }
 
-void initSd(boolean debugMe){
+void initSd(){
   
   //initialize SD
-  if(debugMe){
+  #if defined DEBUG  
     Serial.print("|| SD ...");
-  }
+  #endif
   pinMode(hardwareSelect, OUTPUT);
 
   if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    if(debugMe){
+    #if defined DEBUG  
       Serial.println("FAIL (unable to init)");
-    }
+    #endif
   } else {
-    if(debugMe){
+    #if defined DEBUG  
       Serial.println("OK, card information:");
       Serial.print("type=");
       switch(card.type()) {
@@ -154,15 +155,15 @@ void initSd(boolean debugMe){
           Serial.println("Unknown");
       } 
       Serial.print("volume=");
-    }
+    #endif
     if (!volume.init(card)) {
-      if(debugMe){
+      #if defined DEBUG  
         Serial.println("unformatted");
-      }
+      #endif
     }else{
       // print the type and size of the first FAT-type volume
-       root.openRoot(volume);
-      if(debugMe){
+      root.openRoot(volume);
+      #if defined DEBUG  
         uint32_t volumesize;
         Serial.print("FAT ");
         Serial.println(volume.fatType(), DEC);
@@ -179,8 +180,7 @@ void initSd(boolean debugMe){
         
         // list all files in the card with date and size
         root.ls(LS_R | LS_DATE | LS_SIZE);
-      
-      }
+      #endif
       
       SD.begin(chipSelect);
     }
@@ -189,13 +189,13 @@ void initSd(boolean debugMe){
   
 }
 
-void initSensors(boolean debugMe){
+void initSensors(){
   for(int i=0;i>maxSensors;i++){
-    initSensor(config.sensors[i],debugMe);
+    initSensor(config.sensors[i]);
   }
 }
 
-void initSensor(struct Sensor &thisSensor,boolean debugMe){
+void initSensor(struct Sensor &thisSensor){
 
   if(thisSensor.type==0){
     //zone off
@@ -213,13 +213,13 @@ void initSensor(struct Sensor &thisSensor,boolean debugMe){
 
 }
 
-void initZones(boolean debugMe){
+void initZones(){
   for(int i=0;i<maxZones;i++){
-    initZone(config.zones[i],debugMe);
+    initZone(config.zones[i]);
   }
 }
 
-void initZone(struct Zone &thisZone,boolean debugMe){
+void initZone(struct Zone &thisZone){
   
   if(thisZone.type==0){
     //sensor off

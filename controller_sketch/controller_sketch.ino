@@ -19,7 +19,6 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <EthernetUdp.h>
 #include <Base64.h> //Base64 by 
 #include <WebServer.h> //Webduino by sirleech
-#include "avr/pgmspace.h" // new include
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
 #include <EEPROM.h>
@@ -33,8 +32,9 @@ To-Do:
 
 **/
 
-boolean debug = false;
-boolean debugNoEthernet = false;
+//#define DEBUG
+//boolean debug = true;
+//boolean debugNoEthernet = false;
 
 //increasing this will increase the EEPROM usage.
 //3,3,3 = <1000
@@ -46,7 +46,7 @@ const int maxSensors = 3;
 //RTC
 Chronodot RTC;
 
-//ntp variables
+//ntp variables`x`
 const int NTP_PACKET_SIZE= 48;
 byte ntpPacketBuffer[ NTP_PACKET_SIZE];
 
@@ -96,7 +96,7 @@ struct Zone{
   int pin;
   int safetyOffAfterMinutes;
   int isRunning; //0=off, 1=on
-  int statusRunStarted;
+  unsigned long statusRunStarted;
   int statusRunBySchedule;
   int statusSafetyOff;
 };
@@ -110,8 +110,8 @@ struct Sensor{
   int frequencyLogSeconds; //0=every log
   unsigned long statusValue;
   unsigned long statusValue2;
-  int statusLastChecked;
-  int statusLastLogged;
+  unsigned long statusLastChecked;
+  unsigned long statusLastLogged;
 };
 
 #define CONFIG_VERSION "1v1"
@@ -121,11 +121,13 @@ struct Config{
   String adminUsername;
   String adminPassword;
   unsigned long utcOffset;
+  boolean hasEthernet;
   boolean dhcp;
   IPAddress clientAddress;
   IPAddress clientNetmask;
   IPAddress clientGateway;
   byte hardwareMac[8];
+  boolean ntp;
   IPAddress ntpServer;
   Schedule schedules[maxSchedules];
   Zone zones[maxZones];
@@ -137,32 +139,37 @@ config={
   "admin",
   -6,
   true,
+  true,
   (0,0,0,0),
   (0, 0, 0, 0),
   (0, 0, 0, 0),
   {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
+  false,
   IPAddress(64, 236, 96, 53) //time.nist.gov
 };
 
 // the setup routine runs once when you press reset:
 void setup() {
 
-  if(debug){
-    // initialize serial communication at 9600 bits per second:
-    Serial.begin(9600);
+  Serial.begin(9600);
     
-    //fancy header
+  #if defined DEBUG
     Serial.println("==========================================");
     Serial.println("|| Fat Rabbit Farm - Garden Controller  ||");
     Serial.println("==========================================");
-  }
+  #endif
   
   //initialize configuration
   //loadConfig();
   
+  config.adminUsername = "admin";
+  config.adminPassword = "fatrabbit";
+  
+  config.dhcp = false;
   config.clientAddress = IPAddress(192,168,2,99);
-  config.clientNetmask = IPAddress(255,255,255,255);
+  config.clientNetmask = IPAddress(255,255,255,0);
   config.clientGateway = IPAddress(192,168,2,1);
+  config.ntp=false;
   
   config.zones[0].name="Heater Outlet";
   config.zones[0].type = 1;
@@ -180,16 +187,19 @@ void setup() {
   config.sensors[0].name = "Bench Temperature & Humidity";
   config.sensors[0].type = 3;
   config.sensors[0].pin = 2;
+  config.sensors[0].frequencyCheckSeconds = 5;
   config.sensors[0].frequencyLogSeconds = 300;
   
   config.sensors[1].name="soil temperature";
   config.sensors[1].type = 0;
   config.sensors[1].pin = 3;
+  config.sensors[0].frequencyCheckSeconds = 5;
   config.sensors[1].frequencyLogSeconds = 300;
 
   config.sensors[2].name="Soil Moisture";
   config.sensors[2].type = 1;
   config.sensors[2].pin = 1;
+  config.sensors[0].frequencyCheckSeconds = 5;
   config.sensors[2].frequencyLogSeconds = 300;
   
   //heat schedule - temperature
@@ -246,16 +256,17 @@ void setup() {
   for(int m=0;m<60;m++){
     config.schedules[2].timerStartMinutes[m] = m;
   }
+     
+  initRtc();
+  initEthernet();
+  initSd();
+  initNtp(config.ntp);
+  initSensors();
+  initZones();
     
-  initRtc(debug);
-  initEthernet(debug);
-  initSd(debug);
-  initNtp(debug);
-  initSensors(debug);
-  initZones(debug);
-  loadConfig(debug);
- 
-  Serial.println("==========================================");
+  #if defined DEBUG  
+    Serial.println("==========================================");
+  #endif
 }
 
 // the loop routine runs over and over again forever:
@@ -274,10 +285,10 @@ void loop(){
   //checkConfig();
 
   //check sensors
-  checkSensors(timeLocal,debug);
+  checkSensors(timeLocal);
     
   //check schedules
-  checkSchedules(timeLocal,debug);
+  checkSchedules(timeLocal);
 
   //display settings
   //pushDisplay();

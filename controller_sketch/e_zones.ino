@@ -1,26 +1,5 @@
-void safetyOff(DateTime checkTime){
-  /*
-  //turn off if RTC failed to load a proper time
-  
-  for(int i=0;i<maxZones;i++){
-    
-    if(config.zones[i].type==0){
-      
-      //turn off if zone is set to off
-      turnZoneOff(config.zones[i],checkTime,0);
-    }else if(config.zones[i].statusRun==1 && (checkTime.unixtime()>=(config.zones[i].safetyOffAfterMinutes*60+config.zones[i].statusRunStarted))){
-      //turn off if time exceeds safety off
-      turnZoneOff(config.zones[i],checkTime,1);
-      config.zones[i].statusSafetyOff = 1;
-    }
-    
-  }*/
-  
-  //turn off if zone run time has exceeded safety off minutes
-}
 
-
-void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime, boolean debugMe){
+void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>0){
       if(config.zones[(thisSchedule.zones[i]-1)].isRunning==0){
@@ -32,7 +11,7 @@ void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime, boolean
   }
 }
 
-void turnScheduleZonesOff(struct Schedule &thisSchedule, DateTime offTime, boolean debugMe){
+void turnScheduleZonesOff(struct Schedule &thisSchedule, DateTime offTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>0){
       if(config.zones[(thisSchedule.zones[i]-1)].isRunning==1){
@@ -57,7 +36,7 @@ void turnZoneOn(struct Zone &thisZone, DateTime onTime,int logMe){
   digitalWrite(thisZone.pin,HIGH);
   
   if(logMe==1){
-    addZoneLog(thisZone,onTime,"on","");
+    addZoneLog(thisZone,onTime.unixtime(),"on","");
   }
 }
 
@@ -68,7 +47,7 @@ void turnZoneOff(struct Zone &thisZone, DateTime offTime, int logMe){
   thisZone.statusRunStarted = 0;
   
   if(logMe==1){
-    addZoneLog(thisZone,offTime,"off","");
+    addZoneLog(thisZone,offTime.unixtime(),"off","");
   }
 }
 

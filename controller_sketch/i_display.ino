@@ -44,72 +44,43 @@ String scheduleTypeDisplayName(struct Schedule &checkingSchedule){
   return d;
 }
 
-String getDateTime(DateTime t){
-  return getDate(t)+" "+getTime(t);
+
+
+void printDateTimeToSerial(DateTime now){
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    if(now.month() < 10) Serial.print("0");
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    if(now.day() < 10) Serial.print("0");
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    if(now.hour() < 10) Serial.print("0");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    if(now.minute() < 10) Serial.print("0");
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    if(now.second() < 10) Serial.print("0");
+    Serial.print(now.second(), DEC);
+
 }
 
-String getDate(DateTime t){
-  String value;
-  value += String(t.day());
-  value += "/";
-  value += String(t.month());
-  value += "/";
-  value += String(t.year());
-  return value;
-}
-
-String getTime(DateTime t){
-  String value;
-  value += String(t.hour());
-  value += ":";
-  value += String(t.minute());
-  value += ":";
-  value += String(t.second());
-  return value;
-}
-
-unsigned long getChronodotTempF(DateTime t){
+int getChronodotTempF(DateTime t){
   return t.tempF();
 }
 
-String getIp(){
-  // print the value of each byte of the IP address:
-  String ip;
-  ip += Ethernet.localIP()[0];
-  ip += "."; 
-  ip += Ethernet.localIP()[1];
-  ip += "."; 
-  ip += Ethernet.localIP()[2];
-  ip += "."; 
-  ip += Ethernet.localIP()[3];
-  return ip;
+void printIpToSerial(IPAddress thisIp){
+
+  Serial.print(thisIp[0]);
+  Serial.print("."); 
+  Serial.print(thisIp[1]);
+  Serial.print("."); 
+  Serial.print(thisIp[2]);
+  Serial.print("."); 
+  Serial.print(thisIp[3]);
+
 }
-
-/*String printConfig(){
-
-  Serial.print("Version=");
-  Serial.println(config.version);
-  for(int i=0;i<maxSchedules;i++){
-    Serial.print("Schedule #");
-    Serial.println(i);
-    Serial.print("name=");
-    Serial.println(config.schedules[i].name);
-  }
-  for(int i=0;i<maxSensors;i++){
-    Serial.print("Sensor #");
-    Serial.println(i);
-    Serial.print("name=");
-    Serial.println(config.sensors[i].name);
-  }
-  for(int i=0;i<maxZones;i++){
-    Serial.print("Zone #");
-    Serial.println(i);
-    Serial.print("name=");
-    Serial.println(config.zones[i].name);
-
-  }
-
-}*/
 
 void printDirectory(File dir, int numTabs) {
   while(true) {

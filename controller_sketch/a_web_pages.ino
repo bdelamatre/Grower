@@ -1,4 +1,22 @@
 
+char* getUserPassInBase64(String user, String pass){
+
+    String b;
+    b += user;
+    b += ":"; 
+    b += pass;
+    byte atm = 0;
+    char tok[200];
+    char encoded[200] = "";
+    char o;
+    
+    atm = b.length(); 
+    b.toCharArray(tok,atm+1);
+    base64_encode(encoded, tok, atm);
+     
+    return encoded;
+}
+
 String displayYesNo(int i,boolean format=0){
   if(i==1){
     if(format==1){
@@ -35,7 +53,7 @@ String displayWeekday(int i){
   }
 }
 
-String elementUtcOffset(String name, int value){
+/*String elementUtcOffset(String name, int value){
   String html = "<select name=\"utc_";
   html += name;
   html += " >";
@@ -115,7 +133,7 @@ String elementScheduleType(String name, int type){
     html += "<option value=\"";
     html += i;
     html += "\"";
-    if(value==i){
+    if(type==i){
       html+= " selected";
     }
     html += ">";
@@ -124,7 +142,7 @@ String elementScheduleType(String name, int type){
     }else{
       html += "-";
     }
-    html += scheduleTypeDisplayName(i);
+    //html += scheduleTypeDisplayName(i);
     html +=" </option>";
   }
   return html;
@@ -138,7 +156,7 @@ String elementZoneType(String name, int type){
     html += "<option value=\"";
     html += i;
     html += "\"";
-    if(value==i){
+    if(type==i){
       html+= " selected";
     }
     html += ">";
@@ -147,7 +165,7 @@ String elementZoneType(String name, int type){
     }else{
       html += "-";
     }
-    html += zoneTypeDisplayName(i);
+    //html += zoneTypeDisplayName(i);
     html +=" </option>";
   }
   return html;
@@ -167,7 +185,7 @@ String elementSensorType(String name, int type){
     html += "<option value=\"";
     html += i;
     html += "\"";
-    if(value==i){
+    if(type==i){
       html+= " selected";
     }
     html += ">";
@@ -176,7 +194,7 @@ String elementSensorType(String name, int type){
     }else{
       html += "-";
     }
-    html += sensorTypeDisplayName(i);
+    //html += sensorTypeDisplayName(i);
     html +=" </option>";
   }
   return html;
@@ -193,45 +211,19 @@ String elementTimerHours(String name, int* type){
 String elementTimerMinutes(String name, int* type){
 }
 
-
-
 #define NAMELEN 32
 #define VALUELEN 32
 
-void adminCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
+/void htmlAdmin(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
   
-  //fix-me: a bit lengthy to get a base64 encoded char*
-  char* concatC;
-  String concatS;
-  char* credentialC;
-  concatS += config.adminUsername;
-  concatS += ":";
-  concatS += config.adminPassword;
-  concatS.toCharArray(concatC,concatS.length());
-  base64_encode(credentialC,concatC,sizeof(concatC));
-  
-  /* if the user has requested this page using the following credentials
-   * username = user
-   * password = user
-   * display a page saying "Hello User"
-   *
-   * the credentials have to be concatenated with a colon like
-   * username:password
-   * and encoded using Base64 - this should be done outside of your Arduino
-   * to be easy on your resources
-   *
-   * in other words: "dXNlcjp1c2Vy" is the Base64 representation of "user:user"
-   *
-   * if you need to change the username/password dynamically please search
-   * the web for a Base64 library */
-  if (server.checkCredentials(credentialC))
+  if (server.checkCredentials("YWRtaW46YWRtaW4="))
   {
     server.httpSuccess();
     if(type == WebServer::POST){
       
       URLPARAM_RESULT rc;
-      char name[NAMELEN];
+      char name[NAMELEN]; 
       int  name_len;
       char value[VALUELEN];
       int value_len;
@@ -327,276 +319,302 @@ void adminCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         server.println(elementInt(zoneName+"[\"safetyOffAfterMinutes\"]",config.zones[i].safetyOffAfterMinutes));
       }
     }
-      server.println("<button type=\"submit\" />");
-      server.println("</form>");
+      //server.println("<button type=\"submit\" />");
+      //server.println("</form>");
     
   }
   else
   {
-    /* send a 401 error back causing the web browser to prompt the user for credentials */
     server.httpUnauthorized();
   }
-}
+}*/
 
     
 void htmlStatus(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
-  server.httpSuccess();
-
-  if (type != WebServer::HEAD)
+  
+  char* authentication = getUserPassInBase64(config.adminUsername,config.adminPassword);
+  
+  if (server.checkCredentials(authentication))
   {
-
-    DateTime t = getLocalTime();
-
-    P(startOpen) = "<!DOCTYPE HTML><html><head><meta http-equiv=\"refresh\" content=\"10\"/><title>Status - Fat Rabbit Garden</title></head>";
-    server.printP(startOpen);
-    P(style) = "<style>.mainSection{} #general{} #schedules{} #sensors{} #zones{}</style>";
-    server.printP(style);
-    P(startClose) = "<body style=\"text-align:center;\">";
-    server.printP(startClose);
-    P(header) = "<header><h1>Fat Rabbit Farm - Garden Controller</h1></header>";
-    server.printP(header);
-    
-    server.println("<h2>General</h2>");
-    server.println("<section id=\"general\" class=\"mainSection\">");
-    server.print("Date/Time: ");
-    server.print(getDateTime(t));
-    server.print(" (UTC ");
-    server.print(config.utcOffset);
-    server.println(")");
-    server.println("</section>");
-    
-    server.println("<h2>Sensors</h2>");
-    server.println("<a href=\"/sensor-log.csv\" download=\"sensor-log.csv\">Donwload Log</a>");
-    server.println("<section id=\"sensors\" class=\"mainSection\">");
-    
-    for(int i=0;i<maxSensors;i++){
+  
+    server.httpSuccess();
+  
+    if (type != WebServer::HEAD)
+    {
+  
+      DateTime t = getLocalTime();
+  
+      P(startOpen) = "<!DOCTYPE HTML><html><head><meta http-equiv=\"refresh\" content=\"300\"/><title>Status - Fat Rabbit Garden</title></head>";
+      server.printP(startOpen);
+      P(style) = "<style> .mainSection{} section{width:400px;margin:auto;} article{margin:5px;padding:5px;} #general article{border:2px solid #000000;} #schedules article{border:2px solid #000000;} #sensors article{border:2px solid #000000;} #zones article{border:2px solid #000000;}</style>";
+      server.printP(style);
+      P(startClose) = "<body style=\"text-align:center;\">";
+      server.printP(startClose);
+      P(header) = "<header><h1>Fat Rabbit Farm - Garden Controller</h1></header>";
+      server.printP(header);
       
-      if(config.sensors[i].type>0){
-        
-        server.println("<article>");
+      P(generalSectionOpen) = "<h2>General</h2><section id=\"general\" class=\"mainSection\">Date/Time: ";
+      server.printP(generalSectionOpen);
       
-        server.print("<b>");
-        server.print(config.sensors[i].name);
-        server.print("</b>");
-
-        server.print(sensorTypeDisplayName(config.sensors[i]));        
+      server.print(t.year(), DEC);
+      server.print('/');
+      if(t.month() < 10) server.print("0");
+      server.print(t.month(), DEC);
+      server.print('/');
+      if(t.day() < 10) server.print("0");
+      server.print(t.day(), DEC);
+      server.print(' ');
+      if(t.hour() < 10) server.print("0");
+      server.print(t.hour(), DEC);
+      server.print(':');
+      if(t.minute() < 10) server.print("0");
+      server.print(t.minute(), DEC);
+      server.print(':');
+      if(t.second() < 10) server.print("0");
+      server.print(t.second(), DEC);
+      
+      server.print(" (UTC ");
+      server.print(int(config.utcOffset));
+      server.println(")");
+      server.println("</section>");
+      
+      P(sensorSectionOpen) = "<h2>Sensors</h2><section id=\"sensors\" class=\"mainSection\">";
+      server.printP(sensorSectionOpen);
+      
+      for(int i=0;i<maxSensors;i++){
         
-        server.print("<h2>");
-        server.print(config.sensors[i].statusValue);
-        if(config.sensors[i].type==1){
-          server.print("%");
-        }else if(config.sensors[i].type==2 or config.sensors[i].type==3){
-          server.print("F");
-        }
-        server.print("</h2>");
+        if(config.sensors[i].type>0){
+          
+          server.println("<article>");
         
-        if(config.sensors[i].type==3){
-          server.print("<h3>");
-          server.print(config.sensors[i].statusValue2);
+          server.print("<b>");
+          server.print(config.sensors[i].name);
+          server.print("</b><br/>");
+  
+          server.print(sensorTypeDisplayName(config.sensors[i]));        
+          
+          server.print("<h2>");
+          server.print(config.sensors[i].statusValue);
+          if(config.sensors[i].type==1){
+            //server.print("%");
+          }else if(config.sensors[i].type==2 or config.sensors[i].type==3){
+            server.print("F");
+          }
+          server.print("</h2>");
+          
           if(config.sensors[i].type==3){
-            server.print("%");
+            server.print("<h3>");
+            server.print(config.sensors[i].statusValue2);
+            if(config.sensors[i].type==3){
+              server.print("%");
+            }
+            server.print("</h3>");
           }
-          server.print("</h3>");
+          
+          server.print("</article>");
         }
         
-        server.print("</article>");
+      }
+  
+      P(sensorSectionClose) = "</section><a href=\"/sensor-log.csv\" download=\"sensor-log.csv\">Donwload Sensor Log</a>";
+      server.printP(sensorSectionClose);
+  
+      P(zoneSectionOpen) = "<h2>Zones</h2><section id=\"zones\" class=\"mainSection\">";
+      server.printP(zoneSectionOpen);
+      
+      for(int i=0;i<maxZones;i++){
+        
+        if(config.zones[i].type>0){
+          
+          server.print("<article>");
+        
+          server.print("<b>");
+          server.print(config.zones[i].name);
+          server.print("</b><br/>");
+          
+          server.print(zoneTypeDisplayName(config.zones[i]));
+          
+          server.print("<h2>");
+          server.print(displayYesNo(config.zones[i].isRunning,1));
+          server.print("</h2>");
+        
+          server.println("</article>");
+        }
+        
       }
       
-    }
-
-    server.print("</section>");
-
-    server.print("<h2>Zones</h2>");
-    server.print("<a href=\"/zone-log.csv\" download=\"zone-log.csv\">Download Log</a>");
-    server.print("<section id=\"zones\" class=\"mainSection\">");
-    
-    for(int i=0;i<maxZones;i++){
+      P(zoneSectionClose) = "</section><a href=\"/zone-log.csv\" download=\"zone-log.csv\">Download Zone Log</a>";
+      server.printP(zoneSectionClose);
       
-      if(config.zones[i].type>0){
-        
-        server.print("<article>");
+      P(scheduleSectionOpen) = "<h2>Schedules</h2><section id=\"schedules\" class=\"mainSection\">";
+      server.printP(scheduleSectionOpen);
       
-        server.print("<b>");
-        server.print(config.zones[i].name);
-        server.print("</b>");
+      for(int i=0;i<maxSchedules;i++){
         
-        server.print(zoneTypeDisplayName(config.zones[i]));
+        if(config.schedules[i].type>0){
+          
+          server.println("<article>");
         
-        server.print("<h2>");
-        server.print(displayYesNo(config.zones[i].isRunning,1));
-        server.print("</h2>");
-        //server.print("Safety Off? ");
-        //server.print(displayYesNo(config.zones[i].statusSafetyOff));
-        //server.print("<br/>");
-      
-        server.println("</article>");
-      }
-      
-    }
-
-    server.println("</section>");  
-   
-   
-    server.println("<h2>Schedules</h2>");
-    //server.println("<a href=\"/schedule-log.csv\" download=\"schedule-log.csv\">Download Log</a>");
-    server.println("<section id=\"schedules\" class=\"mainSection\">");
-    
-    for(int i=0;i<maxSchedules;i++){
-      
-      if(config.schedules[i].type>0){
-        
-        server.println("<article>");
-      
-        server.print("<b>");
-        server.print(config.schedules[i].name);
-        server.println("</b>");
-        
-        server.print(scheduleTypeDisplayName(config.schedules[i]));
-        
-        server.print("<h2>");
-        server.print(displayYesNo(config.schedules[i].isRunning,1));
-        server.print("</h2>");
-        
-        server.println("<span style=\"font-weight:bold;\">Zones</span><br/>");
-        for(int z=0;z<maxZones;z++){
-          int thisZoneNum = config.schedules[i].zones[z];
-          if(thisZoneNum>0){
-            server.println(config.zones[thisZoneNum].name);
+          server.print("<b>");
+          server.print(config.schedules[i].name);
+          server.println("</b><br/>");
+          
+          server.print(scheduleTypeDisplayName(config.schedules[i]));
+          
+          server.print("<h2>");
+          server.print(displayYesNo(config.schedules[i].isRunning,1));
+          server.print("</h2>");
+          
+          server.println("<span style=\"font-weight:bold;\">Zones</span><br/>");
+          for(int z=0;z<maxZones;z++){
+            int thisZoneNum = config.schedules[i].zones[z];
+            thisZoneNum--;
+            if(config.zones[thisZoneNum].type>0){
+              server.println(config.zones[thisZoneNum].type);
+              //server.println(config.zones[thisZoneNum].type);
+              //server.println("=");
+              //server.println(config.zones[thisZoneNum].name);
+              //server.println(config.zones[thisZoneNum].name);
+              server.println("<br/>");
+            }
+          }
+          server.println("<br/>");
+          
+          server.println("<span style=\"font-weight:bold;\">Sensors</span><br/>");
+          for(int s=0;s<maxSensors;s++){
+            int thisSensorNum = config.schedules[i].sensors[s];
+            thisSensorNum--;
+            if(config.sensors[thisSensorNum].type>0){
+              server.println(config.sensors[thisSensorNum].name);
+              server.println("<br/>");
+            }
+          }
+          server.println("<br/>");
+          
+          //timer
+          if(config.schedules[i].type==1){
+            P(scheduleTimerTableOpen) = "<table style=\"margin:auto;\"><tr><td>Weekdays</td><td>Hours</td><td>Minutes</td></tr><tr><td valign=\"top\">";
+            server.printP(scheduleTimerTableOpen);
+            for(int w=0;w<7;w++){
+             if(config.schedules[i].timerStartWeekdays[w]>=0){
+               server.print(displayWeekday((config.schedules[i].timerStartWeekdays[w])));
+               server.println("<br/>");
+             }
+            }
+            P(tdCloseOpen) = "</td><td valign=\"top\">";
+            server.printP(tdCloseOpen);
+            for(int h=0;h<24;h++){
+             if(config.schedules[i].timerStartHours[h]>=0){
+               server.print(config.schedules[i].timerStartHours[h]);
+               server.println("<br/>");
+             }
+            }
+            server.printP(tdCloseOpen);
+            for(int m=0;m<60;m++){
+             if(config.schedules[i].timerStartMinutes[m]>=0){
+               server.print(config.schedules[i].timerStartMinutes[m]+1);
+               server.println("<br/>");
+             }
+            }
+            P(scheduleTimerTableClose) = "</td></tr></table>";
+            server.printP(scheduleTimerTableClose);
+          //soil moisture
+          }else if(config.schedules[i].type==2){
+            server.println("Minimum: ");
+            server.println(config.schedules[i].valueMin);
+            server.println("<br/>");
+            server.println("Maximum: ");
+            server.println(config.schedules[i].valueMax);
+            server.println("<br/>");
+          //temperature
+          }else if(config.schedules[i].type==3){
+            server.println("Minimum: ");
+            server.println(config.schedules[i].valueMin);
+            server.println("<br/>");
+            server.println("Maximum: ");
+            server.println(config.schedules[i].valueMax);
             server.println("<br/>");
           }
+        
+          server.println("</article>");
         }
         
-        server.println("<span style=\"font-weight:bold;\">Sensors</span><br/>");
-        for(int s=0;s<maxSensors;s++){
-          int thisSensorNum = config.schedules[i].sensors[s];
-          if(thisSensorNum>0){
-            server.println(config.sensors[thisSensorNum].name);
-            server.println("<br/>");
-          }
-        }
-        
-        //timer
-        if(config.schedules[i].type==1){
-          server.println("<table>");
-          server.println("<tr>");
-          server.println("<td>Weekdays</td>");
-          server.println("<td>Hours</td>");
-          server.println("<td>Minutes</td>");
-          server.println("</tr>");
-          server.println("<tr>");
-          server.println("<td>");
-          for(int w=0;w<7;w++){
-           if(config.schedules[i].timerStartWeekdays[w]>=0){
-             server.print(displayWeekday((config.schedules[i].timerStartWeekdays[w]+1)));
-             server.println("<br/>");
-           }
-          }
-          server.println("</td>");
-          server.println("<td>");
-          for(int h=0;h<24;h++){
-           if(config.schedules[i].timerStartHours[h]>=0){
-             server.print(config.schedules[i].timerStartHours[h]+1);
-             server.println("<br/>");
-           }
-          }
-          server.println("</td>");
-          server.println("<td>");
-          for(int m=0;m<60;m++){
-           if(config.schedules[i].timerStartMinutes[m]>=0){
-             server.print(config.schedules[i].timerStartMinutes[m]+1);
-             server.println("<br/>");
-           }
-          }
-          server.println("</td>");
-          server.println("</tr>");
-          server.println("</table>");
-        //soil moisture
-        }else if(config.schedules[i].type==2){
-          server.println("Minimum: ");
-          server.println(config.schedules[i].valueMin);
-          server.println("<br/>");
-          server.println("Maximum: ");
-          server.println(config.schedules[i].valueMax);
-          server.println("<br/>");
-        //temperature
-        }else if(config.schedules[i].type==3){
-          server.println("Minimum: ");
-          server.println(config.schedules[i].valueMin);
-          server.println("<br/>");
-          server.println("Maximum: ");
-          server.println(config.schedules[i].valueMax);
-          server.println("<br/>");
-        }
-      
-        server.println("</article>");
       }
+  
+      server.println("</section>");   
+     
+      P(footer) = "<footer>&copy;Fat Rabbit Farms</footer>";
+      server.printP(footer);
+      P(ending) = "</head></html>";
+      server.printP(ending);
       
     }
-
-    server.println("</section>");   
-   
-    P(footer) = "<footer>&copy;Fat Rabbit Farms</footer>";
-    server.printP(footer);
-    P(ending) = "</head></html>";
-    server.printP(ending);
     
+        
+  }
+  else
+  {
+    server.httpUnauthorized();
   }
   
 }
 
 void sensorLog(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
-  
-  server.httpSuccess("application/csv");
-
-  if (type != WebServer::HEAD)
-  {
-
-    File myFile = SD.open(sensorLogFileName, FILE_READ);
-    int16_t c;
-    while ((c = myFile.read()) >= 0) {
-      server.print((char)c);
-    }
-    myFile.close();
     
-  }
+  char* authentication = getUserPassInBase64(config.adminUsername,config.adminPassword);
   
+  if (server.checkCredentials(authentication))
+  {
+    
+      server.httpSuccess("application/csv");
+    
+      if (type != WebServer::HEAD)
+      {
+    
+        File myFile = SD.open(sensorLogFileName, FILE_READ);
+        int16_t c;
+        while ((c = myFile.read()) >= 0) {
+          server.print((char)c);
+        }
+        myFile.close();
+        
+      }
+          
+  }
+  else
+  {
+    server.httpUnauthorized();
+  }
 }
 
 void zoneLog(WebServer &server, WebServer::ConnectionType type, char *, bool)
 {
-  server.httpSuccess("application/csv");
-
-  if (type != WebServer::HEAD)
+   
+  char* authentication = getUserPassInBase64(config.adminUsername,config.adminPassword);
+  
+  if (server.checkCredentials(authentication))
   {
     
-    File myFile = SD.open(zoneLogFileName, FILE_READ);
-    int16_t c;
-    while ((c = myFile.read()) >= 0) {
-      server.print((char)c);
-    }
-    myFile.close();
-
+      server.httpSuccess("application/csv");
+    
+      if (type != WebServer::HEAD)
+      {
+        
+        File myFile = SD.open(zoneLogFileName, FILE_READ);
+        int16_t c;
+        while ((c = myFile.read()) >= 0) {
+          server.print((char)c);
+        }
+        myFile.close();
+    
+      }
+          
   }
-  
+  else
+  {
+    server.httpUnauthorized();
+  }
 }
-
-/*void statusHtml(WebServer &server, WebServer::ConnectionType type, char *, bool)
-{
-  server.httpSuccess();
-
-  if (type != WebServer::HEAD)
-  {
-    
-    File myFile = SD.open("status.html", FILE_READ);
-    int16_t c;
-    while ((c = myFile.read()) >= 0) {
-      server.print((char)c);
-    }
-    myFile.close();
-
-  }
-  
-}*/
 
