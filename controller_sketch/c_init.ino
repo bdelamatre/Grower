@@ -12,18 +12,44 @@ void initRtc(){
   Wire.begin();
   RTC.begin();
   
+  #if defined SETTIME
+  if (! RTC.isrunning()) {
+    Serial.print("Manually setting...");
+    // following line sets the RTC to the date & time this sketch was compiled
+    RTC.adjust(DateTime(__DATE__, __TIME__));
+  }
+  #endif
+  
+  
   #if defined DEBUG 
-    Serial.print("OK (");  
-    printDateTimeToSerial(getLocalTime());
-    Serial.print(")");
-    Serial.println();
+    if(!RTC.isrunning()){
+      rtcHasConfig = false;
+      Serial.println("NOT AVAILABLE");
+    }else{
+      rtcHasConfig = true;
+      Serial.print("OK (");  
+      printDateTimeToSerial(getLocalTime());
+      Serial.print(")");
+      Serial.println();
+    }
   #endif
 
 }
 
 //fix-me: better place for this?
 DateTime getLocalTime(){
-  return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
+  if(rtcHasConfig==false){
+    sendNTPpacket(config.ntpServer);
+    delay(1000);
+    unsigned long timeSyncedUnix = readNTPpacket();
+    if(timeSyncedUnix<1){
+    }else{
+      return DateTime(timeSyncedUnix + (config.utcOffset*60*60));
+    }
+  }else{
+    
+    return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
+  }
 }
 
 void initEthernet(){
@@ -39,7 +65,7 @@ void initEthernet(){
       ethernetHasConfig = Ethernet.begin(config.hardwareMac);
     }else{
       ethernetHasConfig = 1;
-      Ethernet.begin(config.hardwareMac,config.clientAddress,config.clientGateway,config.clientNetmask);
+      Ethernet.begin(config.hardwareMac,config.clientAddress,config.clientDns,config.clientGateway,config.clientNetmask);
     }
     
     if(ethernetHasConfig==1){
@@ -62,18 +88,21 @@ void initEthernet(){
         
         //initialize webserver
         webserver.setDefaultCommand(&htmlStatus);
-        webserver.addCommand("status.html", &htmlStatus);
-        webserver.addCommand("config", &htmlAdmin);
-        webserver.addCommand("sensor-log.csv", &sensorLog);
+        webserver.addCommand("config", &htmlConfig);
+        webserver.addCommand("config-general", &htmlConfigGeneral);
+        webserver.addCommand("config-sensors", &htmlConfigSensors);
+        webserver.addCommand("config-zones", &htmlConfigZones);
+        webserver.addCommand("config-schedules", &htmlConfigSchedules);
         webserver.addCommand("zone-log.csv", &zoneLog);
+        webserver.addCommand("sensor-log.csv", &sensorLog);
         webserver.begin();
+        
         #if defined DEBUG  
           Serial.print("|| WEB...");
           Serial.print("OK");
           Serial.println();
         #endif
-        
-        
+
     }
         
   }else{
@@ -84,7 +113,7 @@ void initEthernet(){
     
 }
 
-void initNtp(boolean enabled){
+void initNtp(){
 
   //initialize NTP
   #if defined DEBUG  
@@ -93,14 +122,14 @@ void initNtp(boolean enabled){
     Serial.print(")...");
   #endif
   
-  if(enabled==false){
+  if(config.ntp==false){
     #if defined DEBUG  
       Serial.println("DISABLED");
     #endif
-  }else if(enabled==true && ethernetHasConfig==1){
+  }else if(config.ntp==true && ethernetHasConfig==1){
     
     sendNTPpacket(config.ntpServer);
-    delay(5000);
+    delay(1000);
     unsigned long timeSyncedUnix = readNTPpacket();
     if(timeSyncedUnix<1){
       #if defined DEBUG  
@@ -135,13 +164,13 @@ void initSd(){
   pinMode(hardwareSelect, OUTPUT);
 
   if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    #if defined DEBUG  
+    #if defined DEBUG
       Serial.println("FAIL (unable to init)");
     #endif
   } else {
-    #if defined DEBUG  
+    #if defined DEBUG
       Serial.println("OK, card information:");
-      Serial.print("type=");
+      Serial.print("||  type=");
       switch(card.type()) {
         case SD_CARD_TYPE_SD1:
           Serial.println("SD1");
@@ -155,7 +184,7 @@ void initSd(){
         default:
           Serial.println("Unknown");
       } 
-      Serial.print("volume=");
+      Serial.print("||  volume=");
     #endif
     if (!volume.init(card)) {
       #if defined DEBUG  
@@ -164,20 +193,19 @@ void initSd(){
     }else{
       // print the type and size of the first FAT-type volume
       root.openRoot(volume);
-      #if defined DEBUG  
+      #if defined DEBUG
         uint32_t volumesize;
         Serial.print("FAT ");
         Serial.println(volume.fatType(), DEC);
-      
         volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
         volumesize *= volume.clusterCount();       // we'll have a lot of clusters
         volumesize *= 512;                            // SD card blocks are always 512 bytes
         volumesize /= 1024;
         volumesize /= 1024;
-        Serial.print("size(MB) = ");
+        Serial.print("||  size(MB) = ");
         Serial.println(volumesize);
       
-        Serial.println("Files: ");
+        Serial.println("||  Files: ");
         
         // list all files in the card with date and size
         root.ls(LS_R | LS_DATE | LS_SIZE);

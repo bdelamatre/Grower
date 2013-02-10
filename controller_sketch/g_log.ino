@@ -41,7 +41,7 @@ int memoryFree(){
 
 }*/
 
-void addScheduleLog(struct Schedule &loggingSchedule, int logTime, String logSubject, String logMessage){
+void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, String logSubject, String logMessage){
 
  #if defined DEBUG  
     Serial.print("[log] [SCHEDULE] ");
@@ -51,7 +51,7 @@ void addScheduleLog(struct Schedule &loggingSchedule, int logTime, String logSub
     Serial.print(" , write=");
   #endif
 
-  File loggingFile = SD.open(scheduleLogFileName, FILE_WRITE);
+  File loggingFile = SD.open("schedule.log", FILE_WRITE);
 
   if (loggingFile) {
     loggingFile.print(logTime);
@@ -73,7 +73,7 @@ void addScheduleLog(struct Schedule &loggingSchedule, int logTime, String logSub
   
 }
 
-void addSensorLog(struct Sensor &loggingSensor, int logTime, String logSubject, String logMessage){
+void addSensorLog(struct Sensor &loggingSensor, unsigned long logTime, String logSubject, String logMessage){
 
  #if defined DEBUG  
     Serial.print("[log] [SENSOR] ");
@@ -87,7 +87,7 @@ void addSensorLog(struct Sensor &loggingSensor, int logTime, String logSubject, 
     Serial.print(", write=");
   #endif
   
-  File loggingFile = SD.open(sensorLogFileName, FILE_WRITE);
+  File loggingFile = SD.open("sensor.log", FILE_WRITE);
 
   if (loggingFile) {
     loggingFile.print(logTime);
@@ -101,6 +101,7 @@ void addSensorLog(struct Sensor &loggingSensor, int logTime, String logSubject, 
     loggingFile.print(logSubject);
     loggingFile.print(",");
     loggingFile.println(logMessage);
+    loggingFile.close();
     #if defined DEBUG  
       Serial.println("ok");
     #endif
@@ -112,7 +113,7 @@ void addSensorLog(struct Sensor &loggingSensor, int logTime, String logSubject, 
   }
 }
 
-void addZoneLog(struct Zone &loggingZone, int logTime, String logSubject, String logMessage){
+void addZoneLog(struct Zone &loggingZone, unsigned long logTime, String logSubject, String logMessage){
 
   #if defined DEBUG  
     Serial.print("[log] [ZONE] ");
@@ -122,7 +123,7 @@ void addZoneLog(struct Zone &loggingZone, int logTime, String logSubject, String
     Serial.print(", write=");
   #endif
   
-  File loggingFile = SD.open(zoneLogFileName, FILE_WRITE);
+  File loggingFile = SD.open("zone.log", FILE_WRITE);
 
   if (loggingFile) {
     loggingFile.print(logTime);
@@ -147,4 +148,5 @@ void addZoneLog(struct Zone &loggingZone, int logTime, String logSubject, String
     #endif
   }
 }
+
 

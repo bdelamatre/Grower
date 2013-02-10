@@ -1,50 +1,48 @@
 void pushDisplay(){
 }
 
-String sensorTypeDisplayName(struct Sensor &checkingSensor){
+String sensorTypeDisplayName(int type){
   //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light
   String d = "off";
   
-  if(checkingSensor.type==1){
+  if(type==1){
     d = "Moisture";
-  }else if(checkingSensor.type==2){
+  }else if(type==2){
     d = "Temperature (DS18B20)";
-  }else if(checkingSensor.type==3){
+  }else if(type==3){
     d = "Temperature (DHT22)";
-  }else if(checkingSensor.type==4){
+  }else if(type==4){
     d = "Light";
   }
   
   return d;
 }
 
-String zoneTypeDisplayName(struct Zone &checkingZone){
+String zoneTypeDisplayName(int type){
   //0=off, 1=5v relay
   String d = "off";
   
-  if(checkingZone.type==1){
+  if(type==1){
     d = "5v Relay";
   }
   
   return d;
 }
 
-String scheduleTypeDisplayName(struct Schedule &checkingSchedule){
+String scheduleTypeDisplayName(int type){
   //0=off, 1=timer, 2=soil moisture, 3=temperature
   String d = "off";
   
-  if(checkingSchedule.type==1){
+  if(type==1){
     d = "Timer";
-  }else if(checkingSchedule.type==2){
+  }else if(type==2){
     d = "Soil Moisture";
-  }else if(checkingSchedule.type==3){
+  }else if(type==3){
     d = "Temperature";
   }
   
   return d;
 }
-
-
 
 void printDateTimeToSerial(DateTime now){
     Serial.print(now.year(), DEC);

@@ -33,10 +33,9 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
         }
       }
       
-      #if defined DEBUG
-        Serial.print("memfree=");
-        Serial.println(memoryFree());
-      #endif
+      //#if defined DEBUG
+      //  Serial.println(memoryFree());
+      //#endif
     
       if(checkingSensor.type==1){
         //soil moisture
@@ -111,3 +110,4 @@ int checkSensorLight(struct Sensor &checkingSensor,DateTime checkTime, boolean l
       addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }
 }
+
