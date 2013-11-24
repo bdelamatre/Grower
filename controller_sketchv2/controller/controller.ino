@@ -43,7 +43,7 @@ used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 53 on the Mega) must be left as an output or the SD library
 functions will not work.
 */
-const boolean useSdBuffer = true;
+const boolean useSdBuffer = false;
 const int chipSelect = 4;
 const int hardwareSelect = 10; 
 Sd2Card card;
@@ -119,22 +119,30 @@ void loop(){
   //push value
   //pushValues();
   
-  // Send data from the software serial
-  //if (impSerial.available())
-    //Serial.write(impSerial.read());  // to the hardware serial
- // Send data from the hardware serial
-  //if (Serial.available())
-    //impSerial.write(Serial.read());  // to the software serial
+  while(impSerial.available()){
+    char inChar = (char)impSerial.read(); 
+    outputCommand += inChar;
+    //done building command
+    if (inChar == '<') {
+      if(outputCommand=="<"){
+        //empty command
+        outputCommand = "";
+      }else{
+        executeCommand(outputCommand,"");
+        outputCommand = "";
+      }
+    }
+  }
   
   //build and send commands to impSerial
   //while (Serial.available()) {
-  if (Serial.available()){
+  while(Serial.available()){
     char inChar = (char)Serial.read(); 
     inputCommand += inChar;
     //done building command
     if (inChar == '>') {
       if(inputCommand==">"){
-        //empty command
+        //empty commandut
         inputCommand = "";
       }else{
         sendCommand(inputCommand);
@@ -147,10 +155,10 @@ void loop(){
 
 void executeCommand(String command, String query){
   
-  switch(command){
-      case 'configure-device:set-time':
-        commandConfigureDeviceSetTime(Query);
-      default:
+  if(command=="configure-device:set-time"){
+    Serial.println('got time');
+        //commandConfigureDeviceSetTime();
+  }else{
         Serial.println("Unrecognized command: "+command);
   } 
   
