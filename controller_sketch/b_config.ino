@@ -8,7 +8,7 @@ void checkConfig(){
 void loadConfig() {
   // To make sure there are settings, and they are YOURS!
   // If nothing is found it will use the default settings.
-  #if defined DEBUG
+  /*#if defined DEBUG
     Serial.print("|| Config...");
   #endif
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
@@ -25,28 +25,15 @@ void loadConfig() {
     #if defined DEBUG
       Serial.println("FAIL (version mismatch)");
     #endif
-  }
+  }*/
 }
 
 void saveConfig() {
-  for (unsigned int t=0; t<sizeof(config); t++)
-    EEPROM.write(CONFIG_START + t, *((char*)&config + t));
+  //for (unsigned int t=0; t<sizeof(config); t++)
+  //  EEPROM.write(CONFIG_START + t, *((char*)&config + t));
 }
 
 void myManualConfig(){
-
-  config.adminUsername = "admin";
-  config.adminPassword = "fatrabbit";
-  
-  //config.cameraImgUrl = "http://192.168.2.98/image.jpg";
-  //config.cameraAdminUrl = "http://192.168.2.98";
-  
-  config.dhcp = true;
-  config.clientAddress = IPAddress(192,168,2,99);
-  config.clientNetmask = IPAddress(255,255,255,0);
-  config.clientGateway = IPAddress(192,168,2,1);
-  config.clientDns = IPAddress(192,168,2,1);
-  config.ntp=true;
   
   config.zones[0].name="Heater Outlet";
   config.zones[0].type = 1;
@@ -133,6 +120,5 @@ void myManualConfig(){
   for(int m=0;m<60;m++){
     config.schedules[2].timerStartMinutes[m] = m;
   }
-
   
 }

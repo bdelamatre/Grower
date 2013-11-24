@@ -68,18 +68,6 @@ int getChronodotTempF(DateTime t){
   return t.tempF();
 }
 
-void printIpToSerial(IPAddress thisIp){
-
-  Serial.print(thisIp[0]);
-  Serial.print("."); 
-  Serial.print(thisIp[1]);
-  Serial.print("."); 
-  Serial.print(thisIp[2]);
-  Serial.print("."); 
-  Serial.print(thisIp[3]);
-
-}
-
 void printDirectory(File dir, int numTabs) {
   while(true) {
 
@@ -103,6 +91,11 @@ void printDirectory(File dir, int numTabs) {
       Serial.println(entry.size(), DEC);
     }
   }
+}
+
+void printMemoryFree(){
+    Serial.print("memory free ");
+   // Serial.println(memoryFree()); 
 }
 
 
