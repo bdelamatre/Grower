@@ -1,17 +1,19 @@
 /**
 
-For more information, including setup, check readme.md
+@author Byron DeLamatre <byron@delamatre.com>
+@url https://github.com/bdelamatre/FatRabbitGarden
+@about A controller designed for managing and monitoring your garden. Check readme.md
 
 project structure:
-* controller_sketch  = variable definition, setup() and loop()
+* controller         = variable definition, setup() and loop()
 * a_init             = contains *init() functions used in setup()
 * b_config           = functions for read/write EEPROM config
+* c_commands         = commands for controlling the system
 * d_sensors          = checkSensors() and related functions. Support for additional sensor types may be added here.
 * e_zones            = functions for turning zones on/off
 * f_schedules        = checkSchedules() and related functions. Support for additional schedule types may be added here.
-* g_log              = functions used for logging to SD
-* i_display          = various functions used for fomatting text
-* z_ntp              = ntp functions
+* g_logs             = functions used for logging
+* u_utilities        = various utility functions
 
 required components:
 * RTC - Chronodot (https://www.adafruit.com/products/255)
@@ -30,11 +32,14 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <SD.h>
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
-#include <SoftwareSerial.h>
+#include <SoftwareSerial.h> //fix-me: this won't be needed with the goldilocks
+#include <Flash.h>
+#include <DHT.h> //DHT by AdaFruit
 
 //comment this out in production
 #define DEBUG
 //#define SETTIME
+#define MANUALCONFIG
 
 /*
 SD variables
@@ -43,7 +48,6 @@ used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 53 on the Mega) must be left as an output or the SD library
 functions will not work.
 */
-const boolean useSdBuffer = false;
 const int chipSelect = 4;
 const int hardwareSelect = 10; 
 Sd2Card card;
@@ -51,52 +55,172 @@ SdVolume volume;
 SdFile root;
 
 //RTC variable
-const int useRtc = false;
-boolean rtcHasConfig;
+boolean timeSyncInProgress = false;
+boolean timeSynced = false;
+int timeAtSync;
+DateTime timeSyncedDateTime;
 Chronodot RTC;
 
-SoftwareSerial impSerial(8, 9); // RX on 8, TX on 9
+  SoftwareSerial impSerial(8, 9); // RX on 8, TX on 9
 
-String inputCommand = "";
-String outputCommand = ""; 
+String sendCommandBuffer = "";
+String receiveCommandBuffer = ""; 
+
+/*
+WARNING, increasing these will allow you to configure more 
+schedules, zones and sensors, but increase the RAM and EEPROM 
+usage. Be careful if increases these that you stay within your
+systems limits, or stability issue will occur.
+*/
+const int maxSchedules = 1; 
+const int maxZones = 1; 
+const int maxSensors = 1;
+
+//schedule structure, managed by config structure
+struct Schedule{
+  char* name;
+  int type; //0=off, 1=timer, 2=soil moisture, 3=temperature
+  int zones[maxZones]; //zone id, 0 to maxZones specified
+  int zonesRunType; //0=series, 1=parallel
+  int sensors[maxSensors]; //zone id, 0 to maxSensors specified
+  int timerStartWeekdays[7]; //1-7
+  int timerStartHours[24]; //1-24
+  int timerStartMinutes[60];//1-60
+  int valueMin; //will turn zones on when this value is reached by the specified sensors
+  int valueMax; //will turn zones off when this value is reached by the specified sensors
+  int isRunning; //0=no,1=yes
+};
+
+//zone structure, managed by config structure
+struct Zone{
+  char* name;
+  int type; //0=off, 1=5v relay
+  int pin;
+  int safetyOffAfterMinutes;
+  int isRunning; //0=off, 1=on
+  unsigned long statusRunStarted;
+  int statusRunBySchedule;
+  int statusSafetyOff;
+};
+
+//sensor structure, managed by config structure
+struct Sensor{
+  char* name;
+  int type; //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light
+  int pin;
+  int pin2;
+  int frequencyCheckSeconds; //0=every loop
+  int frequencyLogSeconds; //0=every log
+  unsigned long statusValue;
+  unsigned long statusValue2;
+  unsigned long statusLastChecked;
+  unsigned long statusLastLogged;
+};
+
+/**
+This is the main structure that contains the complete configuration for the system.
+**/
+#define CONFIG_VERSION "2v2"
+#define CONFIG_START 32
+struct Config{
+  char version[4];
+  unsigned long utcOffset;
+  Schedule schedules[maxSchedules];
+  Zone zones[maxZones];
+  Sensor sensors[maxSensors];
+} config={
+  CONFIG_VERSION,
+};
+
 
 // the setup routine runs once when you press reset:
 void setup() {
 
   Serial.begin(19200);
+  //Serial1.begin(19200);
   impSerial.begin(19200);
   
-  inputCommand.reserve(200);
-  outputCommand.reserve(200);
+  //sendCommandBuffer.reserve(200);
+  //receiveCommandBuffer.reserve(200);
 
   #if defined(DEBUG)
-    Serial.println("==========================================");
-    Serial.println("|| Fat Rabbit Farm - Garden Controller  ||");
-    Serial.println("==========================================");
+    printAvailableMemory();
+    printBanner();
   #endif
   
-  if(useSdBuffer==true){
-    initSd();
-  }
-  
-  if(useRtc==true){
-    initRtc();
-  }
+  #if defined(DEBUG)
+    myManualConfig();
+  #else
+    loadConfig();
+  #endif
+ 
+  initElectricImp();
+  initSd();
+  initRtc();  
+  //initSensors();
+  //initZones();
     
   #if defined(DEBUG) 
-    Serial.println("==========================================");
+    printBreak();
+    printAvailableMemory();  
   #endif
   
 }
 
 // the loop routine runs over and over again forever:
-
-// the loop routine runs over and over again forever:
 void loop(){
   
+  //receive commands
+  while(impSerial.available()){
+    char inChar = (char)impSerial.read(); 
+    receiveCommandBuffer += inChar;
+    //Serial.println(inChar);
+    //Serial.println(receiveCommandBuffer);
+    //done building command
+    if (inChar == '<') {
+      if(receiveCommandBuffer=="<"){
+        //empty command, ignore
+        receiveCommandBuffer = "";
+      }else{     
+        executeCommand(receiveCommandBuffer.substring(0,receiveCommandBuffer.indexOf("?"))+"<"
+                      ,receiveCommandBuffer.substring(receiveCommandBuffer.indexOf("?")+1,receiveCommandBuffer.length()-1));
+        receiveCommandBuffer = "";
+      }
+    }
+  }
   
-  //get local time in loop()
+  //send commands
+  while(Serial.available()){
+    char inChar = (char)Serial.read(); 
+    sendCommandBuffer += inChar;
+    //Serial.println(inChar);
+    //Serial.println(sendCommandBuffer);
+    //done building command
+    if (inChar == '>') {
+      if(sendCommandBuffer==">"){
+        //empty command
+        sendCommandBuffer = "";
+      }else{
+        sendCommand(sendCommandBuffer);
+        sendCommandBuffer = "";
+      }
+    }
+  }
+  //but we can't do anything until the time is synced
+  if(timeSynced==false){
+    //if time sync ins't in progress, start
+    if(timeSyncInProgress==false){
+      //String sendCmd = String("config:set-time<");
+      sendCommand("config:set-time>");
+    }
+    return;
+  }
+  
+  //time has been synced and we can continue with controller functions
   DateTime timeLocal = getLocalTime();
+  
+  //printDateTimeToSerial(timeLocal);
+  //Serial.println();
   
   //safety turn off
   //safetyOff(timeLocal);
@@ -119,61 +243,6 @@ void loop(){
   //push value
   //pushValues();
   
-  while(impSerial.available()){
-    char inChar = (char)impSerial.read(); 
-    outputCommand += inChar;
-    //done building command
-    if (inChar == '<') {
-      if(outputCommand=="<"){
-        //empty command
-        outputCommand = "";
-      }else{
-        executeCommand(outputCommand,"");
-        outputCommand = "";
-      }
-    }
-  }
-  
-  //build and send commands to impSerial
-  //while (Serial.available()) {
-  while(Serial.available()){
-    char inChar = (char)Serial.read(); 
-    inputCommand += inChar;
-    //done building command
-    if (inChar == '>') {
-      if(inputCommand==">"){
-        //empty commandut
-        inputCommand = "";
-      }else{
-        sendCommand(inputCommand);
-        inputCommand = "";
-      }
-    }
-  }
 
-}
-
-void executeCommand(String command, String query){
-  
-  if(command=="configure-device:set-time"){
-    Serial.println('got time');
-        //commandConfigureDeviceSetTime();
-  }else{
-        Serial.println("Unrecognized command: "+command);
-  } 
-  
-}
-
-void sendCommand(String command){
-  
-  Serial.print("Sending command: ");
-  Serial.println(command);
-  int commandLength = command.length();
-  int i = 0;
-  while(i<commandLength){
-    char sendChar = command.charAt(i);
-    impSerial.write(byte(sendChar));
-    i++;
-  }
   
 }

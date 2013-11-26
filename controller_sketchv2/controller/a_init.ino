@@ -1,12 +1,37 @@
 /********************************************
   Initialization Functions
 ********************************************/
+
+
+FLASH_STRING(stringOk,"OK");
+
+
+FLASH_STRING(stringInitImp,"|| IMP...");
+
+void initElectricImp(){
   
- void initSd(){
+    #if defined(DEBUG)
+      stringInitImp.print(Serial);
+    #endif
+    
+    //fix-me: we are just assuming everything is okay for now
+    
+    #if defined(DEBUG)  
+      stringOk.print(Serial);
+      Serial.println();
+    #endif
+
+}
+  
+FLASH_STRING(stringInitSd,"|| SD ...");
+FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
+FLASH_STRING(stringInitSdCardInfo,"card information:");  
+  
+void initSd(){
   
   //initialize SD
   #if defined(DEBUG)  
-    Serial.print("|| SD ...");
+      stringInitSd.print(Serial);
   #endif
   
   pinMode(hardwareSelect, OUTPUT);
@@ -14,11 +39,14 @@
 
   if (!card.init(SPI_HALF_SPEED, chipSelect)) {
     #if defined(DEBUG)
-      Serial.println("FAIL (unable to init)");
+      stringInitSdFail.print(Serial);
+      Serial.println();
     #endif
   } else {
     #if defined(DEBUG)
-      Serial.println("OK.  card information:");
+     
+      stringOk.print(Serial);
+      stringInitSdCardInfo.print(Serial);
       Serial.print("||  type=");
       switch(card.type()) {
         case SD_CARD_TYPE_SD1:
@@ -64,36 +92,45 @@
   
 } 
 
+
+FLASH_STRING(stringInitRtc,"|| RTC...");
+FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
+FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
+
 void initRtc(){
 
   //initialize clock
   #if defined(DEBUG)  
-    Serial.print("|| RTC...");
+    stringInitRtc.print(Serial);
   #endif
   
   Wire.begin();
   RTC.begin();
-  
-  #if defined(SETTIME)
-    if (! RTC.isrunning()) {
-      #if defined(DEBUG)
-        Serial.print("Manually setting...");
-      #endif
-      // following line sets the RTC to the date & time this sketch was compiled
-      RTC.adjust(DateTime(__DATE__, __TIME__));
-    }
-  #endif
     
+  //if not available, nothing to do
   if(!RTC.isrunning()){
-    rtcHasConfig = false;
     #if defined(DEBUG)
-      Serial.println("NOT AVAILABLE");
+      stringNotAvailable.print(Serial);
+      Serial.println();
     #endif
   }else{
-    rtcHasConfig = true;
-    #if defined(DEBUG)
-      Serial.print("OK (");  
-      printDateTimeToSerial(getLocalTime());
+    
+    //RTC is available, lets go ahead and indicate that the time is synced
+    timeSynced = true;
+    timeSyncedDateTime =  getLocalTime();
+    
+      #if defined(SETTIME)
+          #if defined(DEBUG)
+            stringManuallySettingTime.print(Serial);
+          #endif
+          // following line sets the RTC to the date & time this sketch was compiled
+          RTC.adjust(DateTime(__DATE__, __TIME__));
+      #endif
+    
+    #if defined(DEBUG) 
+      stringOk.print(Serial);
+      Serial.print("(");  
+      printDateTimeToSerial(timeSyncedDateTime);
       Serial.print(")");
       Serial.println();
     #endif
@@ -101,23 +138,104 @@ void initRtc(){
    
 }
 
+
+FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");
+
 //fix-me: better place for this?
 DateTime getLocalTime(){
-  if(useRtc==false){
-    int sinceStart = millis()/1000;
-    return DateTime(sinceStart);
-  }else{
-    if(rtcHasConfig==false){
-      /*sendNTPpacket(config.ntpServer);
-      delay(1000);
-      unsigned long timeSyncedUnix = readNTPpacket();
-      if(timeSyncedUnix<1){
-      }else{
-        return DateTime(timeSyncedUnix + (config.utcOffset*60*60));
-      }*/
+  
+    //if time hasn't been synced yet, than there is nothing to do.
+    if(timeSynced==false){
+      #if defined(DEBUG)
+        stringErrorSync.print(Serial);
+        Serial.println();
+      #endif
     }else{
-      //return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
-      return DateTime(RTC.now().unixtime());
+    
+      //otherwise, if RTC isn't running use the synced time
+      if(!RTC.isrunning()){
+        
+          int secondsSinceSync = (millis()/1000) - timeAtSync;
+          
+          //resync every 5 minutes
+          if(secondsSinceSync>(60*5)){
+            //and initiate sync again
+            sendCommand("config:set-time>");
+          }
+          
+          //get the last synced time
+          return DateTime(timeSyncedDateTime.unixtime()+secondsSinceSync);
+          
+      //or get the synced time directly from the RTC
+      }else{
+        //return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
+        return DateTime(RTC.now().unixtime());
+      }
+
     }
+  
+}
+
+FLASH_STRING(stringInitSensors,"Initializing sensors:");
+FLASH_STRING(stringSpaces,"  ");
+
+void initSensors(){
+  #if defined(DEBUG)
+    stringInitSensors.print(Serial);
+    Serial.println();
+  #endif
+  for(int i=0;i>maxSensors;i++){
+    initSensor(config.sensors[i]);
   }
 }
+
+void initSensor(struct Sensor &thisSensor){
+
+  if(thisSensor.type==0){
+    //zone off
+  }else if(thisSensor.type==1){
+    #if defined(DEBUG)
+      stringSpaces.print(Serial);
+      Serial.print(thisSensor.name);
+    #endif
+    pinMode(thisSensor.pin, INPUT);
+  }else if(thisSensor.type==2){
+    #if defined(DEBUG)
+      stringSpaces.print(Serial);
+      Serial.print(thisSensor.name);
+    #endif
+    //DS18B20
+    pinMode(thisSensor.pin, INPUT);
+  }else if(thisSensor.type==3){
+    #if defined(DEBUG)
+      stringSpaces.print(Serial);
+      Serial.print(thisSensor.name);
+    #endif
+    //dht22
+    pinMode(thisSensor.pin, INPUT);
+  }else if(thisSensor.type==4){
+    #if defined(DEBUG)
+      stringSpaces.print(Serial);
+      Serial.print(thisSensor.name);
+    #endif
+    pinMode(thisSensor.pin, INPUT);
+  }
+
+}
+
+void initZones(){
+  for(int i=0;i<maxZones;i++){
+    initZone(config.zones[i]);
+  }
+}
+
+void initZone(struct Zone &thisZone){
+  
+  if(thisZone.type==0){
+    //sensor off
+  }else if(thisZone.type==1){
+    pinMode(thisZone.pin, OUTPUT);
+  }
+  
+}
+

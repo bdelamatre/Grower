@@ -1,3 +1,8 @@
+
+FLASH_STRING(memString,"Mem:");
+FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
+FLASH_STRING(bannerBreak,"==========================================");
+
 void printDateTimeToSerial(DateTime now){
     Serial.print(now.year(), DEC);
     Serial.print('/');
@@ -17,3 +22,27 @@ void printDateTimeToSerial(DateTime now){
     Serial.print(now.second(), DEC);
 
 }
+
+void printAvailableMemory(){
+    memString.print(Serial);
+    Serial.println(availableMemory());
+}
+
+void printBanner(){
+    printBreak();
+    banner.print(Serial);Serial.println();
+    printBreak();
+}
+
+void printBreak(){
+    bannerBreak.print(Serial);Serial.println();
+}
+
+int availableMemory() 
+{
+  int size = 1024;
+  byte *buf;
+  while ((buf = (byte *) malloc(--size)) == NULL);
+  free(buf);
+  return size;
+} 
