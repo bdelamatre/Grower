@@ -6,11 +6,14 @@ void checkConfig(){
 
 
 void loadConfig() {
+  
   // To make sure there are settings, and they are YOURS!
   // If nothing is found it will use the default settings.
-  /*#if defined DEBUG
+  
+  #if defined DEBUG
     Serial.print("|| Config...");
   #endif
+  
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
       EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
       EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2]){
@@ -25,12 +28,13 @@ void loadConfig() {
     #if defined DEBUG
       Serial.println("FAIL (version mismatch)");
     #endif
-  }*/
+  }
+  
 }
 
 void saveConfig() {
-  //for (unsigned int t=0; t<sizeof(config); t++)
-  //  EEPROM.write(CONFIG_START + t, *((char*)&config + t));
+    for (unsigned int t=0; t<sizeof(config); t++)
+        EEPROM.write(CONFIG_START + t, *((char*)&config + t));
 }
 
 void myManualConfig(){

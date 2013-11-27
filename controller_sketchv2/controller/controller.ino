@@ -29,6 +29,7 @@ supported components:
 /** 
 For non-standard libraries copy submodules included under FatRabbitGarden/libraries/ into your Arduino IDE libraries/ folder. 
 **/
+#include <EEPROM.h>
 #include <SD.h>
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
@@ -38,7 +39,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //comment this out in production
 #define DEBUG
-//#define DEBUGMEM
+#define DEBUGMEM
 //#define SETTIME
 #define MANUALCONFIG
 
@@ -73,9 +74,9 @@ schedules, zones and sensors, but increase the RAM and EEPROM
 usage. Be careful if increases these that you stay within your
 systems limits, or stability issue will occur.
 */
-const int maxSchedules = 3; 
-const int maxZones = 3; 
-const int maxSensors = 3;
+const int maxSchedules = 4; 
+const int maxZones = 8; 
+const int maxSensors = 8;
 
 //schedule structure, managed by config structure
 struct Schedule{
@@ -121,7 +122,7 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "2v2"
+#define CONFIG_VERSION "2v3"
 #define CONFIG_START 32
 struct Config{
   char version[4];
@@ -155,6 +156,7 @@ void setup() {
     loadConfig();
   #endif
  
+  loadConfig();
   initElectricImp();
   initSd();
   initRtc();  
@@ -203,6 +205,15 @@ void loop(){
         sendCommandBuffer = "";
       }else{
         sendCommand(sendCommandBuffer);
+        sendCommandBuffer = "";
+      }
+    }else if (inChar == '<') {
+      if(sendCommandBuffer=="<"){
+        //empty command, ignore
+        sendCommandBuffer = "";
+      }else{     
+        executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))
+                      ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
         sendCommandBuffer = "";
       }
     }

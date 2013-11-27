@@ -54,6 +54,12 @@ void executeCommand(String command, String params){
   }else if(command=="data:log-received<"){
       //convert the param to a unixtime int and call command
       commandDataLogReceived(params);
+  }else if(command=="config:save<"){
+      //convert the param to a unixtime int and call command
+      commandConfigSave(params);
+  }else if(command=="system:restart<"){
+      //convert the param to a unixtime int and call command
+      commandSystemReset(params);
   }else{
     stringUnrecognizedTime.print(Serial);
     Serial.println(command);
@@ -68,6 +74,11 @@ void executeCommand(String command, String params){
 //FLASH_STRING(stringSettingTime,"Setting time from unixtime ");
 FLASH_STRING(stringAdjustingRTC,"Adjusting RTC to ");
 FLASH_STRING(stringTimeSynced,"Time synced to ");
+
+void commandConfigSave(String logId){
+  Serial.print("Current configuration saved to EEPROM.");
+  saveConfig();
+}
 
 DateTime commandConfigSetTime(unsigned long int timeunix){
     
@@ -103,3 +114,9 @@ void commandDataLogReceived(String logId){
   Serial.println(logId);
 }
 
+void(* restart) (void) = 0; //declare reset function @ address 0
+
+void commandSystemReset(String params){
+  Serial.print("Restarting system.");
+  restart();
+}

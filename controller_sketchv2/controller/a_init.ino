@@ -250,7 +250,9 @@ void initZone(struct Zone &thisZone){
   }
   
   #if defined(DEBUG)
-    Serial.println();
+    if(thisZone.type!=0){
+      Serial.println();
+    }
   #endif
   
 }
