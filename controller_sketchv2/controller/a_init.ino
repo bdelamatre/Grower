@@ -4,6 +4,9 @@
 
 
 FLASH_STRING(stringOk,"OK");
+FLASH_STRING(stringSpaces,"  ");
+FLASH_STRING(stringBannerItemSpace,"||    ");
+FLASH_STRING(stringBannerSubitemSpace,"||    ");
 
 
 FLASH_STRING(stringInitImp,"|| IMP...");
@@ -158,7 +161,7 @@ DateTime getLocalTime(){
           int secondsSinceSync = (millis()/1000) - timeAtSync;
           
           //resync every 5 minutes
-          if(secondsSinceSync>(60*5)){
+          if(timeSyncInProgress==false && secondsSinceSync>(60*5)){
             //and initiate sync again
             sendCommand("config:set-time>");
           }
@@ -176,54 +179,56 @@ DateTime getLocalTime(){
   
 }
 
-FLASH_STRING(stringInitSensors,"Initializing sensors:");
-FLASH_STRING(stringSpaces,"  ");
+FLASH_STRING(stringInitSensors,"|| Initializing sensors:");
 
 void initSensors(){
   #if defined(DEBUG)
     stringInitSensors.print(Serial);
     Serial.println();
   #endif
-  for(int i=0;i>maxSensors;i++){
+  for(int i=0;i<maxSensors;i++){
     initSensor(config.sensors[i]);
   }
 }
 
 void initSensor(struct Sensor &thisSensor){
 
+  #if defined(DEBUG)
+    if(thisSensor.type!=0){
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(thisSensor.name);
+    }
+  #endif
+  
   if(thisSensor.type==0){
     //zone off
   }else if(thisSensor.type==1){
-    #if defined(DEBUG)
-      stringSpaces.print(Serial);
-      Serial.print(thisSensor.name);
-    #endif
     pinMode(thisSensor.pin, INPUT);
   }else if(thisSensor.type==2){
-    #if defined(DEBUG)
-      stringSpaces.print(Serial);
-      Serial.print(thisSensor.name);
-    #endif
     //DS18B20
     pinMode(thisSensor.pin, INPUT);
   }else if(thisSensor.type==3){
-    #if defined(DEBUG)
-      stringSpaces.print(Serial);
-      Serial.print(thisSensor.name);
-    #endif
     //dht22
     pinMode(thisSensor.pin, INPUT);
   }else if(thisSensor.type==4){
-    #if defined(DEBUG)
-      stringSpaces.print(Serial);
-      Serial.print(thisSensor.name);
-    #endif
     pinMode(thisSensor.pin, INPUT);
   }
 
+  #if defined(DEBUG)
+    if(thisSensor.type!=0){
+      Serial.println();
+    }
+  #endif
+
 }
 
+FLASH_STRING(stringInitZones,"|| Initializing zones:");
+
 void initZones(){
+  #if defined(DEBUG)
+    stringInitZones.print(Serial);
+    Serial.println();
+  #endif
   for(int i=0;i<maxZones;i++){
     initZone(config.zones[i]);
   }
@@ -231,11 +236,22 @@ void initZones(){
 
 void initZone(struct Zone &thisZone){
   
+  #if defined(DEBUG)
+    if(thisZone.type!=0){
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(thisZone.name);
+    }
+  #endif
+  
   if(thisZone.type==0){
     //sensor off
   }else if(thisZone.type==1){
     pinMode(thisZone.pin, OUTPUT);
   }
+  
+  #if defined(DEBUG)
+    Serial.println();
+  #endif
   
 }
 

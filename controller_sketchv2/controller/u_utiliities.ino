@@ -24,8 +24,10 @@ void printDateTimeToSerial(DateTime now){
 }
 
 void printAvailableMemory(){
-    memString.print(Serial);
-    Serial.println(availableMemory());
+    #if defined(DEBUGMEM)
+      memString.print(Serial);
+      Serial.println(availableMemory());
+    #endif
 }
 
 void printBanner(){

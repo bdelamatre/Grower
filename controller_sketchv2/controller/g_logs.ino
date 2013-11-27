@@ -11,110 +11,81 @@ FLASH_STRING(stringLogWrite,", write=");
 
 void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, String logSubject, String logMessage){
 
- #if defined DEBUG  
-    stringLogSchedule.print(Serial);
-    Serial.print(loggingSchedule.name);
-    stringLogDelimitter.print(Serial);
-    Serial.print(logSubject);
-    stringLogWrite.print(Serial);
+  String thisLog = "";
+  thisLog += "schedule";
+  thisLog += ",";
+  thisLog += logTime;
+  thisLog += ",";
+  thisLog += loggingSchedule.name;
+  thisLog += ",";
+  thisLog += loggingSchedule.isRunning;
+  thisLog += ",";
+  thisLog += logSubject;
+  thisLog += ",";
+  thisLog += logMessage;
+  
+  #if defined DEBUG  
+    stringLogZone.print(Serial);
+    Serial.println(thisLog);
   #endif
-
-  File loggingFile = SD.open("schedule.log", FILE_WRITE);
-
-  /*if (loggingFile) {
-    loggingFile.print(logTime);
-    loggingFile.print(",");
-    loggingFile.print(+loggingSchedule.isRunning);
-    loggingFile.print(",");
-    loggingFile.print(logSubject);
-    loggingFile.print(",");
-    loggingFile.println(logMessage);
-    loggingFile.close();
-    #if defined DEBUG  
-      Serial.println("ok");
-    #endif
-  }else {
-    #if defined DEBUG  
-      Serial.println("fail");
-    #endif
-  }*/
+  
+  sendCommand("data:log?"+thisLog+">");
   
 }
 
+
 void addSensorLog(struct Sensor &loggingSensor, unsigned long logTime, String logSubject, String logMessage){
 
+  String thisLog = "";
+  thisLog += "sensor";
+  thisLog += ",";
+  thisLog += logTime;
+  thisLog += ",";
+  thisLog += loggingSensor.name;
+  thisLog += ",";
+  thisLog += loggingSensor.statusValue;
+  thisLog += ",";
+  thisLog += loggingSensor.statusValue2;
+  thisLog += ",";
+  thisLog += logSubject;
+  thisLog += ",";
+  thisLog += logMessage;
+  
   #if defined DEBUG  
     stringLogSensor.print(Serial);
-    Serial.print(loggingSensor.name);
-    stringLogDelimitter.print(Serial);
-    Serial.print(loggingSensor.statusValue);
-    stringLogDelimitter.print(Serial);
-    Serial.print(loggingSensor.statusValue2);
-    stringLogDelimitter.print(Serial);
-    Serial.print(logSubject);
-    stringLogWrite.print(Serial);
+    Serial.println(thisLog);
   #endif
   
-  File loggingFile = SD.open("sensor.log", FILE_WRITE);
-
-  /*if (loggingFile) {
-    loggingFile.print(logTime);
-    loggingFile.print(",");
-    loggingFile.print(loggingSensor.name);
-    loggingFile.print(",");
-    loggingFile.print(loggingSensor.statusValue);
-    loggingFile.print(",");
-    loggingFile.print(loggingSensor.statusValue2);
-    loggingFile.print(",");
-    loggingFile.print(logSubject);
-    loggingFile.print(",");
-    loggingFile.println(logMessage);
-    loggingFile.close();
-    #if defined DEBUG  
-      Serial.println("ok");
-    #endif
-  }  
-  else {
-    #if defined DEBUG  
-      Serial.println("fail");
-    #endif
-  }*/
+  sendCommand("data:log?"+thisLog+">");
+  
 }
 
 void addZoneLog(struct Zone &loggingZone, unsigned long logTime, String logSubject, String logMessage){
 
+  String thisLog = "";
+  thisLog += "zone";
+  thisLog += ",";
+  thisLog += logTime;
+  thisLog += ",";
+  thisLog += loggingZone.name;
+  thisLog += ",";
+  thisLog += loggingZone.isRunning;
+  thisLog += ",";
+  thisLog += loggingZone.statusRunStarted;
+  thisLog += ",";
+  thisLog += loggingZone.statusRunBySchedule;
+  thisLog += ",";
+  thisLog += logSubject;
+  thisLog += ",";
+  thisLog += logMessage;
+  
   #if defined DEBUG  
     stringLogZone.print(Serial);
-    Serial.print(loggingZone.name);
-    stringLogDelimitter.print(Serial);
-    Serial.print(logSubject);
-    stringLogWrite.print(Serial);
+    Serial.println(thisLog);
   #endif
   
-  File loggingFile = SD.open("zone.log", FILE_WRITE);
-
-  /*if (loggingFile) {
-    loggingFile.print(logTime);
-    loggingFile.print(",");
-    loggingFile.print(loggingZone.isRunning);
-    loggingFile.print(",");
-    loggingFile.print(loggingZone.statusRunStarted);
-    loggingFile.print(",");
-    loggingFile.print(loggingZone.statusRunBySchedule);
-    loggingFile.print(",");
-    loggingFile.print(logSubject);
-    loggingFile.print(",");
-    loggingFile.println(logMessage);
-    loggingFile.close();
-    #if defined DEBUG  
-      Serial.println("ok");
-    #endif
-  }
-  else {
-    #if defined DEBUG  
-      Serial.println("fail");
-    #endif
-  }*/
+  sendCommand("data:log?"+thisLog+">");
+ 
 }
 
 

@@ -35,7 +35,7 @@ void saveConfig() {
 
 void myManualConfig(){
   
-  /*config.zones[0].name="Heater Outlet";
+  config.zones[0].name="Heater Outlet";
   config.zones[0].type = 1;
   config.zones[0].pin = 5;
   
@@ -49,7 +49,7 @@ void myManualConfig(){
   config.zones[2].pin = 6;
   
   config.sensors[0].name = "Bench Temperature & Humidity";
-  config.sensors[0].type = 3;
+  config.sensors[0].type = 0;
   config.sensors[0].pin = 2;
   config.sensors[0].frequencyCheckSeconds = 5;
   config.sensors[0].frequencyLogSeconds = 300;
@@ -63,9 +63,9 @@ void myManualConfig(){
   config.sensors[2].name="Soil Moisture";
   config.sensors[2].type = 1;
   config.sensors[2].pin = 1;
-  config.sensors[2].frequencyCheckSeconds = 5;
-  config.sensors[2].frequencyLogSeconds = 300;
-  
+  config.sensors[2].frequencyCheckSeconds = 1;
+  config.sensors[2].frequencyLogSeconds = 10;
+  /*
   //heat schedule - temperature
   config.schedules[0].name="Heaters";
   config.schedules[0].type=3;
