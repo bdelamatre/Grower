@@ -23,7 +23,7 @@ void sendCommand(String thisCommand){
   int i = 0;
   while(i<commandLength){
     char sendChar = thisCommand.charAt(i);
-    impSerial.write(byte(sendChar));
+    Serial1.write(byte(sendChar));
     i++;
   }
   
@@ -51,6 +51,9 @@ void executeCommand(String command, String params){
   if(command=="config:set-time<"){
       //convert the param to a unixtime int and call command
       commandConfigSetTime(params.toInt());
+  }else if(command=="data:log-received<"){
+      //convert the param to a unixtime int and call command
+      commandDataLogReceived(params);
   }else{
     stringUnrecognizedTime.print(Serial);
     Serial.println(command);
@@ -95,4 +98,8 @@ DateTime commandConfigSetTime(unsigned long int timeunix){
     return thisDateTime;
 }
 
+void commandDataLogReceived(String logId){
+  Serial.print("Server received log: ");
+  Serial.println(logId);
+}
 

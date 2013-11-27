@@ -32,12 +32,13 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <SD.h>
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
-#include <SoftwareSerial.h> //fix-me: this won't be needed with the goldilocks
+//#include <SoftwareSerial.h> //fix-me: this won't be needed with the goldilocks
 #include <Flash.h>
 #include <DHT.h> //DHT by AdaFruit
 
 //comment this out in production
 #define DEBUG
+//#define DEBUGMEM
 //#define SETTIME
 #define MANUALCONFIG
 
@@ -61,7 +62,7 @@ int timeAtSync;
 DateTime timeSyncedDateTime;
 Chronodot RTC;
 
-  SoftwareSerial impSerial(8, 9); // RX on 8, TX on 9
+//SoftwareSerial impSerial(8, 9); // RX on 8, TX on 9
 
 String sendCommandBuffer = "";
 String receiveCommandBuffer = ""; 
@@ -72,9 +73,9 @@ schedules, zones and sensors, but increase the RAM and EEPROM
 usage. Be careful if increases these that you stay within your
 systems limits, or stability issue will occur.
 */
-const int maxSchedules = 1; 
-const int maxZones = 1; 
-const int maxSensors = 1;
+const int maxSchedules = 3; 
+const int maxZones = 3; 
+const int maxSensors = 3;
 
 //schedule structure, managed by config structure
 struct Schedule{
@@ -137,8 +138,8 @@ struct Config{
 void setup() {
 
   Serial.begin(19200);
-  //Serial1.begin(19200);
-  impSerial.begin(19200);
+  Serial1.begin(19200);
+  //impSerial.begin(19200);
   
   //sendCommandBuffer.reserve(200);
   //receiveCommandBuffer.reserve(200);
@@ -148,7 +149,7 @@ void setup() {
     printBanner();
   #endif
   
-  #if defined(DEBUG)
+  #if defined(MANUALCONFIG)
     myManualConfig();
   #else
     loadConfig();
@@ -157,8 +158,8 @@ void setup() {
   initElectricImp();
   initSd();
   initRtc();  
-  //initSensors();
-  //initZones();
+  initSensors();
+  initZones();
     
   #if defined(DEBUG) 
     printBreak();
@@ -171,8 +172,8 @@ void setup() {
 void loop(){
   
   //receive commands
-  while(impSerial.available()){
-    char inChar = (char)impSerial.read(); 
+  while(Serial1.available()){
+    char inChar = (char)Serial1.read(); 
     receiveCommandBuffer += inChar;
     //Serial.println(inChar);
     //Serial.println(receiveCommandBuffer);
@@ -232,7 +233,7 @@ void loop(){
   //checkConfig();
 
   //check sensors
-  //checkSensors(timeLocal);
+  checkSensors(timeLocal);
     
   //check schedules
   //checkSchedules(timeLocal);
