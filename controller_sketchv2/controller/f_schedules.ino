@@ -5,7 +5,7 @@
 void checkSchedules(DateTime checkTime){
 
   for(int i=0;i<maxSchedules;i++){
-    checkSchedule(config.schedules[i],checkTime);
+    checkSchedule(configStore.schedules[i],checkTime);
   }
 }
 
@@ -81,10 +81,10 @@ int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, DateTime checkT
     int thisSensorNum = checkingSchedule.sensors[i];
     if(thisSensorNum>0){
       //sensor specfied
-      if(config.sensors[thisSensorNum-1].type==1){
+      if(configStore.sensors[thisSensorNum-1].type==1){
         //is a soil moisture sensor;
         //fix-me: just uses the value of the last soil moisture sensor
-        soilMoisture = config.sensors[thisSensorNum-1].statusValue;
+        soilMoisture = configStore.sensors[thisSensorNum-1].statusValue;
       }
     }
    }
@@ -114,10 +114,10 @@ int checkScheduleTemperature(struct Schedule &checkingSchedule, DateTime checkTi
     int thisSensorNum = checkingSchedule.sensors[i];
     if(thisSensorNum>0){
       //sensor specfied
-      if(config.sensors[thisSensorNum-1].type==2 || config.sensors[thisSensorNum-1].type==3){
+      if(configStore.sensors[thisSensorNum-1].type==2 || configStore.sensors[thisSensorNum-1].type==3){
         //is a soil moisture sensor;
         //fix-me: just uses the value of the last soil moisture sensor
-        temperature = config.sensors[thisSensorNum-1].statusValue;
+        temperature = configStore.sensors[thisSensorNum-1].statusValue;
       }
     }
    }

@@ -187,7 +187,7 @@ void initSensors(){
     Serial.println();
   #endif
   for(int i=0;i<maxSensors;i++){
-    initSensor(config.sensors[i]);
+    initSensor(configStore.sensors[i]);
   }
 }
 
@@ -230,7 +230,7 @@ void initZones(){
     Serial.println();
   #endif
   for(int i=0;i<maxZones;i++){
-    initZone(config.zones[i]);
+    initZone(configStore.zones[i]);
   }
 }
 
@@ -251,6 +251,36 @@ void initZone(struct Zone &thisZone){
   
   #if defined(DEBUG)
     if(thisZone.type!=0){
+      Serial.println();
+    }
+  #endif
+  
+}
+
+FLASH_STRING(stringInitSchedules,"|| Initializing schedules:");
+
+void initSchedules(){
+  #if defined(DEBUG)
+    stringInitSchedules.print(Serial);
+    Serial.println();
+  #endif
+  for(int i=0;i<maxSchedules;i++){
+    initSchedule(configStore.schedules[i]);
+  }
+}
+
+void initSchedule (struct Schedule &thisSchedule){
+    
+  #if defined(DEBUG)
+    if(thisSchedule.type!=0){
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(thisSchedule.name);
+    }
+  #endif
+  
+  
+  #if defined(DEBUG)
+    if(thisSchedule.type!=0){
       Serial.println();
     }
   #endif

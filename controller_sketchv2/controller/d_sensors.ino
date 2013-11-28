@@ -4,7 +4,7 @@
 
 void checkSensors(DateTime checkTime){
   for(int i=0;i<maxSensors;i++){
-    checkSensor(config.sensors[i],checkTime);
+    checkSensor(configStore.sensors[i],checkTime);
   }
 }
 

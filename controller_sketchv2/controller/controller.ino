@@ -41,7 +41,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #define DEBUG
 #define DEBUGMEM
 //#define SETTIME
-#define MANUALCONFIG
+//#define MANUALCONFIG
 
 /*
 SD variables
@@ -80,7 +80,7 @@ const int maxSensors = 8;
 
 //schedule structure, managed by config structure
 struct Schedule{
-  char* name;
+  char name[32];
   int type; //0=off, 1=timer, 2=soil moisture, 3=temperature
   int zones[maxZones]; //zone id, 0 to maxZones specified
   int zonesRunType; //0=series, 1=parallel
@@ -95,7 +95,7 @@ struct Schedule{
 
 //zone structure, managed by config structure
 struct Zone{
-  char* name;
+  char name[32];
   int type; //0=off, 1=5v relay
   int pin;
   int safetyOffAfterMinutes;
@@ -107,7 +107,7 @@ struct Zone{
 
 //sensor structure, managed by config structure
 struct Sensor{
-  char* name;
+  char name[32];
   int type; //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light
   int pin;
   int pin2;
@@ -122,17 +122,20 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "2v3"
-#define CONFIG_START 32
-struct Config{
+#define CONFIG_VERSION "1v1"
+#define CONFIG_START 1024
+//boolean configOk  = true;
+//int configAddress=0;
+struct ConfigStore{
   char version[4];
   unsigned long utcOffset;
   Schedule schedules[maxSchedules];
   Zone zones[maxZones];
   Sensor sensors[maxSensors];
-} config={
+} configStore={
   CONFIG_VERSION,
 };
+
 
 
 // the setup routine runs once when you press reset:
@@ -150,18 +153,14 @@ void setup() {
     printBanner();
   #endif
   
-  #if defined(MANUALCONFIG)
-    myManualConfig();
-  #else
-    loadConfig();
-  #endif
- 
+
   loadConfig();
   initElectricImp();
   initSd();
   initRtc();  
   initSensors();
   initZones();
+  initSchedules();
     
   #if defined(DEBUG) 
     printBreak();
@@ -211,10 +210,18 @@ void loop(){
       if(sendCommandBuffer=="<"){
         //empty command, ignore
         sendCommandBuffer = "";
-      }else{     
-        executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))
-                      ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
-        sendCommandBuffer = "";
+      }else{
+        //has paramaters
+        if(sendCommandBuffer.indexOf("?")>=0){
+          executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))+"<"
+                        ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
+          sendCommandBuffer = "";
+        //doesn't have parameters
+        }else{
+          executeCommand(sendCommandBuffer
+                        ,"");
+          sendCommandBuffer = "";
+        }
       }
     }
   }
@@ -230,9 +237,6 @@ void loop(){
   
   //time has been synced and we can continue with controller functions
   DateTime timeLocal = getLocalTime();
-  
-  //printDateTimeToSerial(timeLocal);
-  //Serial.println();
   
   //safety turn off
   //safetyOff(timeLocal);
@@ -252,9 +256,5 @@ void loop(){
   //display settings
   //pushDisplay();
   
-  //push value
-  //pushValues();
-  
-
   
 }

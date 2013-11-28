@@ -2,10 +2,10 @@
 void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>0){
-      if(config.zones[(thisSchedule.zones[i]-1)].isRunning==0){
-        turnZoneOn(config.zones[(thisSchedule.zones[i]-1)],onTime,1);
+      if(configStore.zones[(thisSchedule.zones[i]-1)].isRunning==0){
+        turnZoneOn(configStore.zones[(thisSchedule.zones[i]-1)],onTime,1);
       }else{
-        turnZoneOn(config.zones[(thisSchedule.zones[i]-1)],onTime,0);
+        turnZoneOn(configStore.zones[(thisSchedule.zones[i]-1)],onTime,0);
       }
     }
   }
@@ -14,10 +14,10 @@ void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
 void turnScheduleZonesOff(struct Schedule &thisSchedule, DateTime offTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>0){
-      if(config.zones[(thisSchedule.zones[i]-1)].isRunning==1){
-        turnZoneOff(config.zones[(thisSchedule.zones[i]-1)],offTime,1);
+      if(configStore.zones[(thisSchedule.zones[i]-1)].isRunning==1){
+        turnZoneOff(configStore.zones[(thisSchedule.zones[i]-1)],offTime,1);
       }else{
-        turnZoneOff(config.zones[(thisSchedule.zones[i]-1)],offTime,0);
+        turnZoneOff(configStore.zones[(thisSchedule.zones[i]-1)],offTime,0);
       }
     }
   }
