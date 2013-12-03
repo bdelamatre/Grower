@@ -99,6 +99,7 @@ struct Zone{
   int type; //0=off, 1=5v relay
   int pin;
   int safetyOffAfterMinutes;
+  int overrideOn; //null=n/a,0=off, 1=on
   int isRunning; //0=off, 1=on
   unsigned long statusRunStarted;
   int statusRunBySchedule;
@@ -122,7 +123,7 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "1v1"
+#define CONFIG_VERSION "1v2"
 #define CONFIG_START 1024
 //boolean configOk  = true;
 //int configAddress=0;

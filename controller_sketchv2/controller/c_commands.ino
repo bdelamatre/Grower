@@ -36,7 +36,7 @@ Generic handler for executing commands received from the Electric Imp
 
 FLASH_STRING(stringExecuting,"[RX] ");
 FLASH_STRING(stringWith," ,paramater= ");
-FLASH_STRING(stringUnrecognizedTime,"Unrecognized command: ");
+FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 
 void executeCommand(String command, String params){
   
@@ -45,29 +45,36 @@ void executeCommand(String command, String params){
   stringWith.print(Serial);
   Serial.println(params);
   
+  //set time from unixtime
   if(command=="config:set-time<"){
-      //convert the param to a unixtime int and call command
       commandConfigSetTime(params.toInt());
+  //save configuration to EEPROM
   }else if(command=="config:save<"){
-      //convert the param to a unixtime int and call command
       commandConfigSave(params);
+  //reset configuration to default (nullify EEPROM)
   }else if(command=="config:reset-default<"){
-      //convert the param to a unixtime int and call command
       commandConfigResetDefault(params);
+  //restart the controller
   }else if(command=="system:restart<"){
-      //convert the param to a unixtime int and call command
       commandSystemReset(params);
+  //confirm that a data log was received
   }else if(command=="data:log-received<"){
-      //convert the param to a unixtime int and call command
       commandDataLogReceived(params);
+  //configure a zone
   }else if(command=="config:zone<"){
-      //convert the param to a unixtime int and call command
       commandConfigZone(params);
+  //override a zone on
+  }else if(command=="test:zones<"){
+      commandTestZones(params);
+  }else if(command=="config:sensor<"){
+      commandConfigSensor(params);
+  }else if(command=="config:schedule<"){
+      commandConfigSchedule(params);
   }else{
-    stringUnrecognizedTime.print(Serial);
+    stringUnrecognizedCommand.print(Serial);
     Serial.println(command);
   } 
-  
+                      
   #if defined(DEBUG)
     printAvailableMemory();
   #endif
@@ -132,7 +139,7 @@ void commandConfigZone(String params){
   //get id
   int zoneId = getIdFromParams(params);
     
-  if(zoneId<1 || zoneId>maxZones){
+  if(zoneId<0 || zoneId>maxZones){
     Serial.print(zoneId);
     Serial.println(" isn't a valid zone id");  
     return;
@@ -159,16 +166,147 @@ void commandConfigZone(String params){
       String name  = param.substring(0,param.indexOf("="));
       String value = param.substring(param.indexOf("=")+1);
       
+      Serial.print("Changing ");
+      Serial.print(name);
+      Serial.print(" to ");
+      Serial.println(value);
+      
       if(name=="name"){
-        Serial.print("Changing name from ");
-        Serial.print(configStore.zones[zoneId].name);
-        Serial.print(" to ");
-        value.toCharArray(configStore.zones[zoneId].name,value.length()+1);
-        Serial.println(configStore.zones[zoneId].name);
+        value.toCharArray(configStore.zones[zoneId].name,32);
+      }else if(name=="type"){
+        configStore.zones[zoneId].type = value.toInt();
+      }else if(name=="pin"){
+        configStore.zones[zoneId].type = value.toInt();
+      }else if(name=="safetyOffAfterMinutes"){
+        configStore.zones[zoneId].type = value.toInt();
+      }else if(name=="overrideOn"){
+        configStore.zones[zoneId].type = value.toInt();
       }
       
    }
    
+}
+
+void commandTestZones(String params){
+  
+}
+
+void commandConfigSensor(String params){
+  
+  //get id
+  int sensorId = getIdFromParams(params);
+    
+  if(sensorId<0 || sensorId>maxZones){
+    Serial.print(sensorId);
+    Serial.println(" isn't a valid sensor id");  
+    return;
+  }else{
+    Serial.print("Updating config for sensor ");
+    Serial.println(sensorId);
+  } 
+  
+  int commaPosition;
+  String param;
+  
+  //
+  while(commaPosition >= 0){
+      commaPosition = params.indexOf(',');
+
+      if(commaPosition != -1){
+          param = params.substring(0,commaPosition);
+          params = params.substring(commaPosition+1, params.length());
+      }else{ 
+         if(params.length() > 0)
+           param = params; 
+      }
+     
+      String name  = param.substring(0,param.indexOf("="));
+      String value = param.substring(param.indexOf("=")+1);
+      
+      Serial.print("Changing ");
+      Serial.print(name);
+      Serial.print(" to ");
+      Serial.println(value);
+      
+      if(name=="name"){
+        value.toCharArray(configStore.sensors[sensorId].name,32);
+      }else if(name=="type"){
+        configStore.sensors[sensorId].type = value.toInt();
+      }else if(name=="pin"){
+        configStore.sensors[sensorId].pin = value.toInt();
+      }else if(name=="pin2"){
+        configStore.sensors[sensorId].pin2 = value.toInt();
+      }else if(name=="frequencyCheckSeconds"){
+        configStore.sensors[sensorId].frequencyCheckSeconds = value.toInt();
+      }else if(name=="frequencyLogSeconds"){
+        configStore.sensors[sensorId].frequencyLogSeconds = value.toInt();
+      }
+      
+   }   
+  
+}
+
+void commandConfigSchedule(String params){
+  
+  //get id
+  int scheduleId = getIdFromParams(params);
+    
+  if(scheduleId<0 || scheduleId>maxZones){
+    Serial.print(scheduleId);
+    Serial.println(" isn't a valid schedule id");  
+    return;
+  }else{
+    Serial.print("Updating config for schedule ");
+    Serial.println(scheduleId);
+  } 
+  
+  int commaPosition;
+  String param;
+  
+  //
+   while(commaPosition >= 0){
+      commaPosition = params.indexOf(',');
+
+      if(commaPosition != -1){
+          param = params.substring(0,commaPosition);
+          params = params.substring(commaPosition+1, params.length());
+      }else{ 
+         if(params.length() > 0)
+           param = params; 
+      }
+     
+      String name  = param.substring(0,param.indexOf("="));
+      String value = param.substring(param.indexOf("=")+1);
+      
+      Serial.print("Changing ");
+      Serial.print(name);
+      Serial.print(" to ");
+      Serial.println(value);
+      
+      if(name=="name"){
+        value.toCharArray(configStore.schedules[scheduleId].name,32);
+      }else if(name=="type"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="zones"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="zonesRunType"){
+        configStore.schedules[scheduleId].zonesRunType = value.toInt();
+      }else if(name=="sensors"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="timerStartWeekdays"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="timerStartHours"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="timerStartMinutes"){
+        configStore.schedules[scheduleId].type = value.toInt();
+      }else if(name=="valueMin"){
+        configStore.schedules[scheduleId].valueMin = value.toInt();
+      }else if(name=="valueMax"){
+        configStore.schedules[scheduleId].valueMax = value.toInt();
+      }
+   
+   }
+  
 }
 
 int getIdFromParams(String params){
@@ -206,16 +344,4 @@ String getParamByName(String params, String paramName){
    
    return "";
   
-} 
-  
-  /*struct Zone{
-    char* name;
-    int type; //0=off, 1=5v relay
-    int pin;
-    int safetyOffAfterMinutes;
-    int isRunning; //0=off, 1=on
-    unsigned long statusRunStarted;
-    int statusRunBySchedule;
-    int statusSafetyOff;
-  };*/
-
+}

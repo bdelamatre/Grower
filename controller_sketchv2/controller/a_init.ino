@@ -187,37 +187,53 @@ void initSensors(){
     Serial.println();
   #endif
   for(int i=0;i<maxSensors;i++){
+    #if defined(DEBUG)
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(i);
+      Serial.print(" - ");
+    #endif
     initSensor(configStore.sensors[i]);
   }
 }
 
 void initSensor(struct Sensor &thisSensor){
-
-  #if defined(DEBUG)
-    if(thisSensor.type!=0){
-      stringBannerSubitemSpace.print(Serial);
-      Serial.print(thisSensor.name);
-    }
-  #endif
+ 
   
   if(thisSensor.type==0){
     //zone off
+    #if defined(DEBUG)
+      Serial.print("Disabled");
+    #endif
   }else if(thisSensor.type==1){
+    //soil moisture (analog)
     pinMode(thisSensor.pin, INPUT);
+    #if defined(DEBUG)
+      Serial.print("Analog");
+    #endif
   }else if(thisSensor.type==2){
     //DS18B20
     pinMode(thisSensor.pin, INPUT);
+    #if defined(DEBUG)
+      Serial.print("DS18B20");
+    #endif
   }else if(thisSensor.type==3){
     //dht22
     pinMode(thisSensor.pin, INPUT);
+    #if defined(DEBUG)
+      Serial.print("DHT22");
+    #endif
   }else if(thisSensor.type==4){
+    //light
     pinMode(thisSensor.pin, INPUT);
+    #if defined(DEBUG)
+      Serial.print("Light");
+    #endif
   }
-
+  
   #if defined(DEBUG)
-    if(thisSensor.type!=0){
-      Serial.println();
-    }
+    Serial.print(" - ");
+    Serial.print(thisSensor.name);
+    Serial.println();
   #endif
 
 }
@@ -230,29 +246,33 @@ void initZones(){
     Serial.println();
   #endif
   for(int i=0;i<maxZones;i++){
+    #if defined(DEBUG)
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(i);
+      Serial.print(" - ");
+    #endif
     initZone(configStore.zones[i]);
   }
 }
 
 void initZone(struct Zone &thisZone){
-  
-  #if defined(DEBUG)
-    if(thisZone.type!=0){
-      stringBannerSubitemSpace.print(Serial);
-      Serial.print(thisZone.name);
-    }
-  #endif
-  
+
   if(thisZone.type==0){
     //sensor off
+    #if defined(DEBUG)
+      Serial.print("Disabled");
+    #endif
   }else if(thisZone.type==1){
+    #if defined(DEBUG)
+      Serial.print("5V Relay");
+    #endif
     pinMode(thisZone.pin, OUTPUT);
   }
-  
+ 
   #if defined(DEBUG)
-    if(thisZone.type!=0){
-      Serial.println();
-    }
+    Serial.print(" - ");
+    Serial.print(thisZone.name);
+    Serial.println();
   #endif
   
 }
@@ -265,24 +285,42 @@ void initSchedules(){
     Serial.println();
   #endif
   for(int i=0;i<maxSchedules;i++){
+    #if defined(DEBUG)
+      stringBannerSubitemSpace.print(Serial);
+      Serial.print(i);
+      Serial.print(" - ");
+    #endif
     initSchedule(configStore.schedules[i]);
   }
 }
 
 void initSchedule (struct Schedule &thisSchedule){
     
-  #if defined(DEBUG)
-    if(thisSchedule.type!=0){
-      stringBannerSubitemSpace.print(Serial);
-      Serial.print(thisSchedule.name);
-    }
-  #endif
+  if(thisSchedule.type==0){
+    //sensor off
+    #if defined(DEBUG)
+      Serial.print("Disabled");
+    #endif
+  }else if(thisSchedule.type==1){
+    #if defined(DEBUG)
+      Serial.print("Timer");
+    #endif
+  }else if(thisSchedule.type==2){
+    #if defined(DEBUG)
+      Serial.print("Soil Moisture");
+    #endif
+  }else if(thisSchedule.type==3){
+    #if defined(DEBUG)
+      Serial.print("Temperature");
+    #endif
+  }
   
+  //0=off, 1=timer, 2=soil moisture, 3=temperature
   
   #if defined(DEBUG)
-    if(thisSchedule.type!=0){
-      Serial.println();
-    }
+    Serial.print(" - ");
+    Serial.print(thisSchedule.name);
+    Serial.println();
   #endif
   
 }

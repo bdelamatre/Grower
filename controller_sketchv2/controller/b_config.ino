@@ -58,7 +58,7 @@ void defaultConfig(){
   //#endif
   
   
-  String z0n = "Heater Outlet";
+  /*String z0n = "Heater Outlet";
   z0n.toCharArray(configStore.zones[0].name,32);
   //configStore.zones[0].name = "Heater Outlet";
   configStore.zones[0].type = 1;
@@ -162,5 +162,5 @@ void defaultConfig(){
     configStore.schedules[2].timerStartMinutes[m] = m;
   }
   Serial.print(sizeof(configStore));
-  Serial.println(" bytes");
+  Serial.println(" bytes");*/
 }
