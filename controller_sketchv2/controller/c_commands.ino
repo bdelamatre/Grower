@@ -3,9 +3,8 @@
 Generic handler for sending commands out the Electric Imp
 **/
 
-
 //FLASH_STRING(stringSyncInProgress,"Time sync in progress");
-FLASH_STRING(stringSendingCommand,"Sending command: ");
+FLASH_STRING(stringSendingCommand,"[TX] ");
 
 void sendCommand(String thisCommand){
   
@@ -14,8 +13,6 @@ void sendCommand(String thisCommand){
   
   //fix-me: probably a better way to handle this
   if(thisCommand=="config:set-time>"){
-    //stringSyncInProgress.print(Serial);
-    //Serial.println();
     timeSyncInProgress = true;
   }
   
@@ -37,7 +34,7 @@ void sendCommand(String thisCommand){
 Generic handler for executing commands received from the Electric Imp
 **/
 
-FLASH_STRING(stringExecuting,"Received command: ");
+FLASH_STRING(stringExecuting,"[RX] ");
 FLASH_STRING(stringWith," ,paramater= ");
 FLASH_STRING(stringUnrecognizedTime,"Unrecognized command: ");
 
@@ -73,7 +70,8 @@ void executeCommand(String command, String params){
   
   #if defined(DEBUG)
     printAvailableMemory();
-  #endif  
+  #endif
+  
 }
 
 

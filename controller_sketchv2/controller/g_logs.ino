@@ -2,9 +2,9 @@
 LOG functions
 ************************************/
 
-FLASH_STRING(stringLogSchedule,"[log] [SCHEDULE] ");
-FLASH_STRING(stringLogSensor,"[log] [SENSOR] ");
-FLASH_STRING(stringLogZone,"[log] [ZONE] ");
+FLASH_STRING(stringLogSchedule,"[LOG] [SCHEDULE] ");
+FLASH_STRING(stringLogSensor,"[LOG] [SENSOR] ");
+FLASH_STRING(stringLogZone,"[LOG] [ZONE] ");
 FLASH_STRING(stringLogDelimitter,", ");
 FLASH_STRING(stringLogWrite,", write=");
 

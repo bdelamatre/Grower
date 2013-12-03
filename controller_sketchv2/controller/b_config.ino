@@ -1,27 +1,11 @@
 void loadConfig() {
-  
-  
-  //EEPROM.setMemPool(CONFIG_START, EEPROMSizeMega);
-  //unsigned int currentConfigStoreSize = sizeof(configStore);
-  //unsigned int configStoreAddress  = EEPROM.getAddress(currentConfigStoreSize);
-  
-  // To make sure there are settings, and they are YOURS!
-  // If nothing is found it will use the default settings.
-    
+
   #if defined DEBUG
     Serial.print("|| Config...");
     Serial.print(CONFIG_VERSION);
     Serial.print("...");
-    //Serial.print(currentConfigStoreSize);
-    //Serial.print("bytes at ");
-    //Serial.print(configStoreAddress);
   #endif
   
-  //EEPROM.readBlock(configStoreAddress, configStore);
-  //Serial.println(configStore.version);
-  //if(configStore.version!=CONFIG_VERSION){
-  //  defaultConfig();
-  //}
   
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
       EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
@@ -31,12 +15,10 @@ void loadConfig() {
     Serial.print(configSize);
     Serial.print(" bytes...");
     
-    for (unsigned int t=0; t<configSize; t++)
+    for (unsigned int t=0; t<configSize; t++){
       *((char*)&configStore + t) = EEPROM.read(CONFIG_START + t);
-      
-    //EEPROM.readBlock(CONFIG_START, config);
-    //return (configStore.version == CONFIG_VERSION);
-   
+    }
+    
     #if defined DEBUG
       Serial.println("OK");
     #endif

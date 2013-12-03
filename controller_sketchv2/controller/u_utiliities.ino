@@ -1,5 +1,5 @@
 
-FLASH_STRING(memString,"Mem:");
+FLASH_STRING(memString,"[DEBUG] [MEMORY] ");
 FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
 FLASH_STRING(bannerBreak,"==========================================");
 
