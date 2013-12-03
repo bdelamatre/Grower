@@ -40,8 +40,16 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 //comment this out in production
 #define DEBUG
 #define DEBUGMEM
+#define DEBUGHEARTBEAT
 //#define SETTIME
 //#define MANUALCONFIG
+
+
+const int heartBeatDelay = 1000;
+boolean heartBeatInProgress = false;
+boolean heartBeatOnline = false;
+unsigned int heartBeatSent = 0;
+unsigned int heartBeatLast = 0;
 
 /*
 SD variables
@@ -154,7 +162,6 @@ void setup() {
     printBanner();
   #endif
   
-
   loadConfig();
   initElectricImp();
   initSd();
@@ -226,6 +233,26 @@ void loop(){
       }
     }
   }
+  
+  //we haven't sent a heartbeat, but need to
+  if(heartBeatInProgress==false
+      && (millis()-heartBeatLast)>=heartBeatDelay){
+      //send heartbeat
+      sendCommand("system:heartbeat>");
+  //heartbeat sent, but we haven't received a response for awhile
+  }else if(heartBeatInProgress==true
+            && millis()-heartBeatSent>=(heartBeatDelay*2)){
+
+      //if(heartBeatOnline==true){
+        Serial.println("[HEARTBEAT] [OFFLINE]");     
+        heartBeatInProgress=false;
+        heartBeatOnline = false;
+        heartBeatLast = 0;
+        heartBeatSent = 0;
+      //}
+      
+  }
+  
   //but we can't do anything until the time is synced
   if(timeSynced==false){
     //if time sync ins't in progress, start

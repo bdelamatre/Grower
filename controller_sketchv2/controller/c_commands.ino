@@ -16,6 +16,12 @@ void sendCommand(String thisCommand){
     timeSyncInProgress = true;
   }
   
+  //fix-me: probably a better way to handle this
+  if(thisCommand=="system:heartbeat>"){
+    heartBeatInProgress = true;
+    heartBeatSent = millis();
+  }
+  
   int commandLength = thisCommand.length();
   int i = 0;
   while(i<commandLength){
@@ -27,6 +33,7 @@ void sendCommand(String thisCommand){
   #if defined(DEBUG)
     printAvailableMemory();
   #endif
+  
 }
 
 
@@ -57,6 +64,9 @@ void executeCommand(String command, String params){
   //restart the controller
   }else if(command=="system:restart<"){
       commandSystemReset(params);
+  //confirm that a data log was received
+  }else if(command=="system:heartbeat<"){
+      commandSystemHeartbeat(params.toInt());
   //confirm that a data log was received
   }else if(command=="data:log-received<"){
       commandDataLogReceived(params);
@@ -101,6 +111,16 @@ void(* restart) (void) = 0; //declare reset function @ address 0
 void commandSystemReset(String params){
   Serial.println("Restarting system.");
   restart();
+}
+
+void commandSystemHeartbeat(int value){
+  
+    //indicate that the time has been synced and set the datetime
+    heartBeatInProgress = false;
+    heartBeatLast = millis();
+    heartBeatOnline = true;
+    Serial.println("[HEARTBEAT] [ONLINE]");
+    
 }
 
 DateTime commandConfigSetTime(unsigned long int timeunix){
