@@ -39,17 +39,17 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //comment this out in production
 #define DEBUG
-#define DEBUGMEM
-#define DEBUGHEARTBEAT
+//#define DEBUGMEM
+//#define DEBUGHEARTBEAT
 //#define SETTIME
 //#define MANUALCONFIG
 
 
-const int heartBeatDelay = 1000;
+const int heartBeatDelay = 5000;
 boolean heartBeatInProgress = false;
 boolean heartBeatOnline = false;
-unsigned int heartBeatSent = 0;
-unsigned int heartBeatLast = 0;
+unsigned long heartBeatSent = 0;
+unsigned long heartBeatLast = 0;
 
 /*
 SD variables
@@ -235,8 +235,8 @@ void loop(){
   }
   
   //we haven't sent a heartbeat, but need to
-  if(heartBeatInProgress==false
-      && (millis()-heartBeatLast)>=heartBeatDelay){
+  if((heartBeatInProgress==false && millis() < heartBeatDelay) 
+  || (heartBeatInProgress==false && (millis()-heartBeatLast)>=heartBeatDelay)){
       //send heartbeat
       sendCommand("system:heartbeat>");
   //heartbeat sent, but we haven't received a response for awhile
