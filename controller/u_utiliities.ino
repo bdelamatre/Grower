@@ -26,7 +26,7 @@ void printDateTimeToSerial(DateTime now){
 void printAvailableMemory(){
     #if defined(DEBUGMEM)
       memString.print(Serial);
-      Serial.println(availableMemory());
+      Serial.println(memoryFree());
     #endif
 }
 
@@ -42,9 +42,35 @@ void printBreak(){
 
 int availableMemory() 
 {
-  int size = 1024;
+  int size = 4096;
   byte *buf;
   while ((buf = (byte *) malloc(--size)) == NULL);
   free(buf);
   return size;
 } 
+
+extern unsigned long __bss_end;
+extern void *__brkval;
+
+int memoryFree()
+{
+  //  long myValue;
+  int freeValue;
+  freeValue = 0;
+
+  if ((unsigned long)__brkval == 0)
+  { 
+    freeValue = ((unsigned long)&freeValue) - ((unsigned long)&__bss_end);
+    //       Serial.println("here and there");
+  }
+  else
+  { 
+    freeValue = ((unsigned long)&freeValue) - ((unsigned long)__brkval);
+    //      Serial.println("here  2");
+  }
+
+  return freeValue;
+
+}//end memoryFree()
+
+

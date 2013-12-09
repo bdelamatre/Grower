@@ -14,15 +14,6 @@ project structure:
 * f_schedules        = checkSchedules() and related functions. Support for additional schedule types may be added here.
 * g_logs             = functions used for logging
 * u_utilities        = various utility functions
-
-required components:
-* RTC - Chronodot (https://www.adafruit.com/products/255)
-
-supported components:
-* Temperature Sensors:
-  * DHT22 (https://www.adafruit.com/products/393) 
-* Analog Soil Moisture Sensors:
-  * Check Ebay, or build a zinc nail sensor
   
 **/
 
@@ -33,17 +24,15 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <SD.h>
 #include <Wire.h> 
 #include <Chronodot.h> //Chronodot by Stephanie-Maks
-//#include <SoftwareSerial.h> //fix-me: this won't be needed with the goldilocks
 #include <Flash.h>
 #include <DHT.h> //DHT by AdaFruit
 
 //comment this out in production
 #define DEBUG
-//#define DEBUGMEM
+#define DEBUGMEM
 //#define DEBUGHEARTBEAT
 //#define SETTIME
 //#define MANUALCONFIG
-
 
 const int heartBeatDelay = 5000;
 boolean heartBeatInProgress = false;
@@ -59,7 +48,8 @@ used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 functions will not work.
 */
 const int chipSelect = 4;
-const int hardwareSelect = 10; 
+const int hardwareSelect = 14; //Goldilocks
+//const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
 Sd2Card card;
 SdVolume volume;
 SdFile root;
@@ -131,7 +121,7 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "1v2"
+#define CONFIG_VERSION "1v3"
 #define CONFIG_START 1024
 //boolean configOk  = true;
 //int configAddress=0;
@@ -152,10 +142,9 @@ void setup() {
 
   Serial.begin(19200);
   Serial1.begin(19200);
-  //impSerial.begin(19200);
   
-  //sendCommandBuffer.reserve(200);
-  //receiveCommandBuffer.reserve(200);
+  sendCommandBuffer.reserve(256);
+  receiveCommandBuffer.reserve(256);
 
   #if defined(DEBUG)
     printAvailableMemory();
@@ -177,66 +166,20 @@ void setup() {
   
 }
 
-// the loop routine runs over and over again forever:
+//  loop - runs over and over again forever:
 void loop(){
   
-  //receive commands
-  while(Serial1.available()){
-    char inChar = (char)Serial1.read(); 
-    receiveCommandBuffer += inChar;
-    //Serial.println(inChar);
-    //Serial.println(receiveCommandBuffer);
-    //done building command
-    if (inChar == '<') {
-      if(receiveCommandBuffer=="<"){
-        //empty command, ignore
-        receiveCommandBuffer = "";
-      }else{     
-        executeCommand(receiveCommandBuffer.substring(0,receiveCommandBuffer.indexOf("?"))+"<"
-                      ,receiveCommandBuffer.substring(receiveCommandBuffer.indexOf("?")+1,receiveCommandBuffer.length()-1));
-        receiveCommandBuffer = "";
-      }
-    }
-  }
+  receiveCommand(Serial1);
+  receiveCommand(Serial);
   
-  //send commands
-  while(Serial.available()){
-    char inChar = (char)Serial.read(); 
-    sendCommandBuffer += inChar;
-    //Serial.println(inChar);
-    //Serial.println(sendCommandBuffer);
-    //done building command
-    if (inChar == '>') {
-      if(sendCommandBuffer==">"){
-        //empty command
-        sendCommandBuffer = "";
-      }else{
-        sendCommand(sendCommandBuffer);
-        sendCommandBuffer = "";
-      }
-    }else if (inChar == '<') {
-      if(sendCommandBuffer=="<"){
-        //empty command, ignore
-        sendCommandBuffer = "";
-      }else{
-        //has paramaters
-        if(sendCommandBuffer.indexOf("?")>=0){
-          executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))+"<"
-                        ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
-          sendCommandBuffer = "";
-        //doesn't have parameters
-        }else{
-          executeCommand(sendCommandBuffer
-                        ,"");
-          sendCommandBuffer = "";
-        }
-      }
-    }
-  }
   
+  //
+  // Heartbeat - the heartbeat helps determine if the controller is online or offline
+  //
   //we haven't sent a heartbeat, but need to
-  if((heartBeatInProgress==false && millis() < heartBeatDelay) 
-  || (heartBeatInProgress==false && (millis()-heartBeatLast)>=heartBeatDelay)){
+  if((heartBeatOnline==false && heartBeatInProgress==false && millis() < heartBeatDelay) 
+        || (heartBeatInProgress==false && (millis()-heartBeatLast)>=heartBeatDelay)){
+          
       //send heartbeat
       sendCommand("system:heartbeat>");
   //heartbeat sent, but we haven't received a response for awhile
@@ -253,6 +196,9 @@ void loop(){
       
   }
   
+  //
+  // Time synchronization
+  //
   //but we can't do anything until the time is synced
   if(timeSynced==false){
     //if time sync ins't in progress, start
@@ -260,7 +206,6 @@ void loop(){
       //String sendCmd = String("config:set-time<");
       sendCommand("config:set-time>");
     }
-    return;
   }
   
   //time has been synced and we can continue with controller functions

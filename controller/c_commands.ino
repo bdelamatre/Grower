@@ -6,22 +6,52 @@ Generic handler for sending commands out the Electric Imp
 //FLASH_STRING(stringSyncInProgress,"Time sync in progress");
 FLASH_STRING(stringSendingCommand,"[TX] ");
 
+void receiveCommand(HardwareSerial &serial){
+
+    while(serial.available()){
+      char inChar = (char)serial.read(); 
+      sendCommandBuffer += inChar;
+      //done building command
+      if (inChar == '>') {
+        //if not an empty command
+        if(sendCommandBuffer!=">"){
+          //send the command
+          sendCommand(sendCommandBuffer);
+        }
+        //than empty the command
+        sendCommandBuffer = "";
+      }else if (inChar == '<') {
+        if(sendCommandBuffer!="<"){
+          //empty command, ignore
+          //has paramaters
+          if(sendCommandBuffer.indexOf("?")>=0){
+            executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))+"<"
+                          ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
+          //doesn't have parameters
+          }else{
+            executeCommand(sendCommandBuffer,"");
+          }
+        }
+        sendCommandBuffer = "";
+      }
+    }  
+
+}
+
 void sendCommand(String thisCommand){
   
   stringSendingCommand.print(Serial);
   Serial.println(thisCommand);
   
-  //fix-me: probably a better way to handle this
+  //these commands need special processing
   if(thisCommand=="config:set-time>"){
     timeSyncInProgress = true;
-  }
-  
-  //fix-me: probably a better way to handle this
-  if(thisCommand=="system:heartbeat>"){
+  }else if(thisCommand=="system:heartbeat>"){
     heartBeatInProgress = true;
     heartBeatSent = millis();
   }
   
+  //write the command to impee byte-by-byte
   int commandLength = thisCommand.length();
   int i = 0;
   while(i<commandLength){
