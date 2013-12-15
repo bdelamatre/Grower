@@ -1,6 +1,8 @@
-/********************************************
-  Check Sensors
-********************************************/
+/***
+
+Sensors
+
+***/
 
 void checkSensors(DateTime checkTime){
   for(int i=0;i<maxSensors;i++){

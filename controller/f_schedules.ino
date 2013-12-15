@@ -1,6 +1,8 @@
-/********************************************
-  Check Schedules
-********************************************/
+/***
+
+Check Schedules
+
+***/
 
 void checkSchedules(DateTime checkTime){
 
@@ -35,6 +37,7 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,DateTime checkTime){
   int hour = checkTime.hour();
   int minute = checkTime.minute();
   
+    
     //check if to turn on
     for(int i=0;i<7;i++){
       if(checkingSchedule.timerStartWeekdays[i]==weekday){

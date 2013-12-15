@@ -1,3 +1,8 @@
+/***
+
+Zones
+
+***/
 
 void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
   for(int i=0;i<maxZones;i++){

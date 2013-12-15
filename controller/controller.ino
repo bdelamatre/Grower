@@ -29,8 +29,9 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //comment this out in production
 #define DEBUG
-#define DEBUGMEM
+//#define DEBUGMEM
 //#define DEBUGHEARTBEAT
+//#define DEBUGTIMESYNC
 //#define SETTIME
 //#define MANUALCONFIG
 
@@ -86,6 +87,7 @@ struct Schedule{
   int timerStartWeekdays[7]; //1-7
   int timerStartHours[24]; //1-24
   int timerStartMinutes[60];//1-60
+  int timerStartSeconds[60];//1-60
   int valueMin; //will turn zones on when this value is reached by the specified sensors
   int valueMax; //will turn zones off when this value is reached by the specified sensors
   int isRunning; //0=no,1=yes
@@ -121,10 +123,8 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "1v3"
+#define CONFIG_VERSION "1v4"
 #define CONFIG_START 1024
-//boolean configOk  = true;
-//int configAddress=0;
 struct ConfigStore{
   char version[4];
   unsigned long utcOffset;
@@ -164,36 +164,40 @@ void setup() {
     printAvailableMemory();  
   #endif
   
+  printCommandLineAvailable();
+  
 }
 
 //  loop - runs over and over again forever:
 void loop(){
   
+  //receive commands
   receiveCommand(Serial1);
   receiveCommand(Serial);
-  
-  
-  //
-  // Heartbeat - the heartbeat helps determine if the controller is online or offline
-  //
+
+  //heartbeat helps determine if the controller is online or offline
   //we haven't sent a heartbeat, but need to
   if((heartBeatOnline==false && heartBeatInProgress==false && millis() < heartBeatDelay) 
         || (heartBeatInProgress==false && (millis()-heartBeatLast)>=heartBeatDelay)){
           
       //send heartbeat
       sendCommand("system:heartbeat>");
+      
   //heartbeat sent, but we haven't received a response for awhile
   }else if(heartBeatInProgress==true
             && millis()-heartBeatSent>=(heartBeatDelay*2)){
 
-      //if(heartBeatOnline==true){
-        Serial.println("[HEARTBEAT] [OFFLINE]");     
+        //#if defined(DEBUGHEARTBEAT)
+        if(heartBeatOnline==true){
+          Serial.println("[HEARTBEAT] [OFFLINE]");
+        }
+        //#endif 
+              
         heartBeatInProgress=false;
         heartBeatOnline = false;
         heartBeatLast = 0;
-        heartBeatSent = 0;
-      //}
-      
+        heartBeatSent = 0; 
+
   }
   
   //
@@ -228,6 +232,5 @@ void loop(){
 
   //display settings
   //pushDisplay();
-  
   
 }

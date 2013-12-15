@@ -23,6 +23,12 @@ void printDateTimeToSerial(DateTime now){
 
 }
 
+void printCommandLineAvailable(){
+
+  Serial.println("You may enter commands now. All commands must be terminated with a < (left-carrot).");
+
+}
+
 void printAvailableMemory(){
     #if defined(DEBUGMEM)
       memString.print(Serial);
@@ -72,5 +78,9 @@ int memoryFree()
   return freeValue;
 
 }//end memoryFree()
+
+
+
+
 
 
