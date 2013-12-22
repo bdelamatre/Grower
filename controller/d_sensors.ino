@@ -58,7 +58,7 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
 }
 
 int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
-  
+    
   //smooth over .25s  
   int smoothed = 0;
   for(int i=0;i<25;i++){
@@ -67,7 +67,7 @@ int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, bo
   }
   
   checkingSensor.statusValue = smoothed / 50;
-  
+    
   if(logMe==true){
       addSensorLog(checkingSensor,checkTime.unixtime(),"","");
   }

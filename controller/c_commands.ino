@@ -7,33 +7,33 @@ Commands
 //FLASH_STRING(stringSyncInProgress,"Time sync in progress");
 FLASH_STRING(stringSendingCommand,"[TX] ");
 
-void receiveCommand(HardwareSerial &serial){
+void receiveCommand(HardwareSerial &serial, String &commandBuffer){
 
-    while(serial.available()){
+    if(serial.available()){
       char inChar = (char)serial.read(); 
-      sendCommandBuffer += inChar;
+      commandBuffer += inChar;
       //done building command
       if (inChar == '>') {
         //if not an empty command
-        if(sendCommandBuffer!=">"){
+        if(commandBuffer!=">"){
           //send the command
-          sendCommand(sendCommandBuffer);
+          sendCommand(commandBuffer);
         }
         //than empty the command
-        sendCommandBuffer = "";
+        commandBuffer = "";
       }else if (inChar == '<') {
-        if(sendCommandBuffer!="<"){
+        if(commandBuffer!="<"){
           //empty command, ignore
           //has paramaters
-          if(sendCommandBuffer.indexOf("?")>=0){
-            executeCommand(sendCommandBuffer.substring(0,sendCommandBuffer.indexOf("?"))+"<"
-                          ,sendCommandBuffer.substring(sendCommandBuffer.indexOf("?")+1,sendCommandBuffer.length()-1));
+          if(commandBuffer.indexOf("?")>=0){
+            executeCommand(commandBuffer.substring(0,commandBuffer.indexOf("?"))+"<"
+                          ,commandBuffer.substring(commandBuffer.indexOf("?")+1,commandBuffer.length()-1));
           //doesn't have parameters
           }else{
-            executeCommand(sendCommandBuffer,"");
+            executeCommand(commandBuffer,"");
           }
         }
-        sendCommandBuffer = "";
+        commandBuffer = "";
       }
     }  
 
@@ -115,12 +115,19 @@ void executeCommand(String command, String params){
   }else if(command=="config:zone<"){
       commandConfigZone(params);
   //override a zone on
+  }else if(command=="config:zone-reset<"){
+      commandConfigZoneReset(params);
+  //override a zone on
   }else if(command=="test:zones<"){
       commandTestZones(params);
   }else if(command=="config:sensor<"){
       commandConfigSensor(params);
+  }else if(command=="config:sensor-reset<"){
+      commandConfigSensorReset(params);
   }else if(command=="config:schedule<"){
       commandConfigSchedule(params);
+  }else if(command=="config:schedul-resete<"){
+      commandConfigScheduleReset(params);
   }else if(command=="help<"){
       commandHelp();
   }else{
@@ -293,16 +300,40 @@ void commandConfigZone(String params){
       }else if(name=="type"){
         configStore.zones[zoneId].type = value.toInt();
       }else if(name=="pin"){
-        configStore.zones[zoneId].type = value.toInt();
+        configStore.zones[zoneId].pin = value.toInt();
       }else if(name=="safetyOffAfterMinutes"){
-        configStore.zones[zoneId].type = value.toInt();
+        configStore.zones[zoneId].safetyOffAfterMinutes = value.toInt();
       }else if(name=="overrideOn"){
-        configStore.zones[zoneId].type = value.toInt();
+        configStore.zones[zoneId].overrideOn = value.toInt();
       }
       
    }
    
 }
+
+void commandConfigZoneReset(String params){
+
+  //get id
+  int zoneId = getIdFromParams(params);
+    
+  if(zoneId<0 || zoneId>maxZones){
+    Serial.print(zoneId);
+    Serial.println(" isn't a valid zone id");  
+    return;
+  }else{
+    Serial.print("Resetting config for zone ");
+    Serial.println(zoneId);
+  } 
+    
+    String tmpName = "";
+    tmpName.toCharArray(configStore.zones[zoneId].name,32);
+    configStore.zones[zoneId].type = 0;
+    configStore.zones[zoneId].pin = 0;
+    configStore.zones[zoneId].safetyOffAfterMinutes = 0;
+    configStore.zones[zoneId].overrideOn = 0;
+    
+}
+
 
 void commandTestZones(String params){
   
@@ -313,7 +344,7 @@ void commandConfigSensor(String params){
   //get id
   int sensorId = getIdFromParams(params);
     
-  if(sensorId<0 || sensorId>maxZones){
+  if(sensorId<0 || sensorId>maxSensors){
     Serial.print(sensorId);
     Serial.println(" isn't a valid sensor id");  
     return;
@@ -362,6 +393,30 @@ void commandConfigSensor(String params){
       
    }   
   
+}
+
+void commandConfigSensorReset(String params){
+  
+  //get id
+  int sensorId = getIdFromParams(params);
+    
+  if(sensorId<0 || sensorId>maxZones){
+    Serial.print(sensorId);
+    Serial.println(" isn't a valid sensor id");  
+    return;
+  }else{
+    Serial.print("Resetting config for sensor ");
+    Serial.println(sensorId);
+  } 
+  
+  String tmpName = "";
+  tmpName.toCharArray(configStore.sensors[sensorId].name,32);
+  configStore.sensors[sensorId].type = 0;
+  configStore.sensors[sensorId].pin = 0;
+  configStore.sensors[sensorId].pin2 = 0;
+  configStore.sensors[sensorId].frequencyCheckSeconds = 0;
+  configStore.sensors[sensorId].frequencyLogSeconds = 0;
+      
 }
 
 void commandConfigSchedule(String params){
@@ -489,9 +544,58 @@ void commandConfigSchedule(String params){
   
 }
 
+void commandConfigScheduleReset(String params){
+  
+  //get id
+  int scheduleId = getIdFromParams(params);
+    
+  if(scheduleId<0 || scheduleId>maxZones){
+    Serial.print(scheduleId);
+    Serial.println(" isn't a valid schedule id");  
+    return;
+  }else{
+    Serial.print("Resetting config for schedule ");
+    Serial.println(scheduleId);
+  } 
+  
+  String tmpName = "";
+  tmpName.toCharArray(configStore.schedules[scheduleId].name,32);
+  configStore.schedules[scheduleId].type = 0;
+  int thisPosition = 0;
+  while(thisPosition < maxZones){
+    configStore.schedules[scheduleId].zones[thisPosition] = 0;
+    thisPosition++;
+  }
+  thisPosition = 0;
+  configStore.schedules[scheduleId].zonesRunType = 0;
+  while(thisPosition < maxSensors){
+     configStore.schedules[scheduleId].sensors[thisPosition] = 0;
+     thisPosition++;
+  }
+  for(int i=0;i<7;i++){
+     configStore.schedules[scheduleId].timerStartWeekdays[i] = 0;
+  }
+  for(int i=0;i<24;i++){
+     configStore.schedules[scheduleId].timerStartHours[i] = 0;
+  }
+  for(int i=0;i<60;i++){
+     configStore.schedules[scheduleId].timerStartMinutes[i] = 0;
+  }
+  for(int i=0;i<60;i++){
+     configStore.schedules[scheduleId].timerStartSeconds[i] = 0;
+  }
+  configStore.schedules[scheduleId].valueMin = 0;
+  configStore.schedules[scheduleId].valueMax = 0;
+  
+  
+}
+
+
 int getIdFromParams(String params){
   
   String value = getParamByName(params,"id");
+  Serial.print("id value is ");
+  Serial.println(value);
   int idValue = value.toInt();
   
   return idValue;
@@ -505,6 +609,7 @@ String getParamByName(String params, String paramName){
   
   //loop through all the parameters
   while(commaPosition >= 0){
+    
       commaPosition = params.indexOf('&');
 
       if(commaPosition != -1){
@@ -518,7 +623,10 @@ String getParamByName(String params, String paramName){
       //get the paramater value
       String value = param.substring(param.indexOf("=")+1);
       
-      return value;
+      if(param == paramName){
+        return value;
+      }
+      
       
    }
    

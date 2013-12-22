@@ -90,6 +90,7 @@ struct Schedule{
   int timerStartSeconds[60];//1-60
   int valueMin; //will turn zones on when this value is reached by the specified sensors
   int valueMax; //will turn zones off when this value is reached by the specified sensors
+  //int enabled;
   int isRunning; //0=no,1=yes
 };
 
@@ -101,6 +102,7 @@ struct Zone{
   int safetyOffAfterMinutes;
   int overrideOn; //null=n/a,0=off, 1=on
   int isRunning; //0=off, 1=on
+  //int enabled;
   unsigned long statusRunStarted;
   int statusRunBySchedule;
   int statusSafetyOff;
@@ -114,6 +116,7 @@ struct Sensor{
   int pin2;
   int frequencyCheckSeconds; //0=every loop
   int frequencyLogSeconds; //0=every log
+  //int enabled;
   unsigned long statusValue;
   unsigned long statusValue2;
   unsigned long statusLastChecked;
@@ -123,26 +126,26 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "1v4"
+#define CONFIG_VERSION "1v7"
 #define CONFIG_START 1024
 struct ConfigStore{
   char version[4];
+  unsigned int configLocalVersionId;
   unsigned long utcOffset;
   Schedule schedules[maxSchedules];
   Zone zones[maxZones];
   Sensor sensors[maxSensors];
 } configStore={
   CONFIG_VERSION,
+  0,
+  -6,
 };
-
-
 
 // the setup routine runs once when you press reset:
 void setup() {
 
   Serial.begin(19200);
   Serial1.begin(19200);
-  
   sendCommandBuffer.reserve(256);
   receiveCommandBuffer.reserve(256);
 
@@ -172,8 +175,8 @@ void setup() {
 void loop(){
   
   //receive commands
-  receiveCommand(Serial1);
-  receiveCommand(Serial);
+  receiveCommand(Serial1,receiveCommandBuffer);
+  receiveCommand(Serial,sendCommandBuffer);
 
   //heartbeat helps determine if the controller is online or offline
   //we haven't sent a heartbeat, but need to

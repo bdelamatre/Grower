@@ -233,6 +233,23 @@ void initSensor(struct Sensor &thisSensor){
   #if defined(DEBUG)
     Serial.print(" - ");
     Serial.print(thisSensor.name);
+    
+    if(thisSensor.type>0){
+      Serial.print(" (");
+      Serial.print("pin=");
+      Serial.print(thisSensor.pin);
+      Serial.print(", ");
+      Serial.print("pin2=");
+      Serial.print(thisSensor.pin2);
+      Serial.print(", ");
+      Serial.print("frequencyCheckSeconds=");
+      Serial.print(thisSensor.frequencyCheckSeconds);
+      Serial.print(", ");
+      Serial.print("frequencyLogSeconds=");
+      Serial.print(thisSensor.frequencyLogSeconds);
+      Serial.print(")");
+    }
+    
     Serial.println();
   #endif
 
