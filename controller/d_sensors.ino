@@ -17,14 +17,14 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
   if(checkingSensor.type==0){
     //sensor off
   }else{
-    
+        
       if(checkingSensor.frequencyCheckSeconds>0 && checkingSensor.statusLastChecked>0){
         DateTime nextTime = DateTime(checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds);
         if(checkTime.unixtime() < nextTime.unixtime() && checkingSensor.statusLastChecked > 0){
           return;
         }
       }
-      
+            
       checkingSensor.statusLastChecked = checkTime.unixtime();
       
       if(checkingSensor.frequencyLogSeconds>0){
@@ -58,7 +58,7 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
 }
 
 int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
-    
+          
   //smooth over .25s  
   int smoothed = 0;
   for(int i=0;i<25;i++){

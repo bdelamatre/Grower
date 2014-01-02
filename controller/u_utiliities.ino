@@ -79,6 +79,48 @@ int memoryFree()
 
 }//end memoryFree()
 
+unsigned long getIdFromParams(String params){
+  
+  String value = getParamByName(params,"id");
+  //Serial.print("id value is ");
+  //Serial.println(value);
+  unsigned long idValue = value.toInt();
+  
+  return idValue;
+  
+}
+
+String getParamByName(String params, String paramName){
+  
+  int commaPosition = 0;
+  String param;
+  
+  //loop through all the parameters
+  while(commaPosition >= 0){
+    
+      commaPosition = params.indexOf('&');
+
+      if(commaPosition != -1){
+          param = params.substring(0,commaPosition);
+          params = params.substring(commaPosition+1, params.length());
+      }else{ 
+         if(params.length() > 0)
+           param = params; 
+      }
+      
+      //get the paramater value
+      String value = param.substring(param.indexOf("=")+1);
+     
+      if(param.startsWith(paramName)){
+        return value;
+      }
+      
+      
+   }
+   
+   return "";
+  
+}
 
 
 

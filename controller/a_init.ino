@@ -7,24 +7,6 @@ FLASH_STRING(stringOk,"OK");
 FLASH_STRING(stringSpaces,"  ");
 FLASH_STRING(stringBannerItemSpace,"||    ");
 FLASH_STRING(stringBannerSubitemSpace,"||    ");
-
-
-FLASH_STRING(stringInitImp,"|| IMP...");
-
-void initElectricImp(){
-  
-    #if defined(DEBUG)
-      stringInitImp.print(Serial);
-    #endif
-    
-    //fix-me: we are just assuming everything is okay for now
-    
-    #if defined(DEBUG)  
-      stringOk.print(Serial);
-      Serial.println();
-    #endif
-
-}
   
 FLASH_STRING(stringInitSd,"|| SD ...");
 FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
@@ -108,15 +90,15 @@ void initRtc(){
   #endif
   
   Wire.begin();
-  RTC.begin();
+  //RTC.begin();
     
   //if not available, nothing to do
-  if(!RTC.isrunning()){
+  /*if(!RTC.isrunning()){
     #if defined(DEBUG)
       stringNotAvailable.print(Serial);
       Serial.println();
     #endif
-  }else{
+  }else{*/
     
     //RTC is available, lets go ahead and indicate that the time is synced
     timeSynced = true;
@@ -127,7 +109,7 @@ void initRtc(){
             stringManuallySettingTime.print(Serial);
           #endif
           // following line sets the RTC to the date & time this sketch was compiled
-          RTC.adjust(DateTime(__DATE__, __TIME__));
+          //RTC.adjust(DateTime(__DATE__, __TIME__));
       #endif
     
     #if defined(DEBUG) 
@@ -137,7 +119,7 @@ void initRtc(){
       Serial.print(")");
       Serial.println();
     #endif
-  }
+  //}
    
 }
 
@@ -156,7 +138,7 @@ DateTime getLocalTime(){
     }else{
     
       //otherwise, if RTC isn't running use the synced time
-      if(!RTC.isrunning()){
+      //if(!RTC.isrunning()){
         
           int secondsSinceSync = (millis()/1000) - timeAtSync;
           
@@ -170,14 +152,24 @@ DateTime getLocalTime(){
           return DateTime(timeSyncedDateTime.unixtime()+secondsSinceSync);
           
       //or get the synced time directly from the RTC
-      }else{
+      //}else{
         //return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
-        return DateTime(RTC.now().unixtime());
-      }
+        //return DateTime(RTC.now().unixtime());
+      //}
 
     }
   
 }
+
+
+void initController(){
+ 
+  initSensors();
+  initZones();
+  initSchedules();
+
+}
+
 
 FLASH_STRING(stringInitSensors,"|| Initializing sensors:");
 
@@ -337,7 +329,31 @@ void initSchedule (struct Schedule &thisSchedule){
   #if defined(DEBUG)
     Serial.print(" - ");
     Serial.print(thisSchedule.name);
-    Serial.println();
+    Serial.print(" (sensors=");
+    for(int i=0;i<maxSensors;i++){
+      int thisSensorId = thisSchedule.sensors[i];
+      if(thisSensorId > 0){
+        //we subtract one because this is the actual ID
+        thisSensorId--;
+        Sensor thisSensor = configStore.sensors[thisSensorId];
+        Serial.print(thisSensor.name);
+        Serial.print(",");
+      }
+    }
+      
+    Serial.print(" zones=");
+    for(int i=0;i<maxZones;i++){
+      int thisZoneId = thisSchedule.zones[i];
+      if(thisZoneId > 0){
+        //we subtract one because this is the actual ID
+        thisZoneId--;
+        Zone thisZone = configStore.zones[thisZoneId];
+        Serial.print(thisZone.name);
+        Serial.print(",");
+      }
+    }
+    
+    Serial.println(")");
   #endif
   
 }
