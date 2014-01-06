@@ -16,23 +16,6 @@ project structure:
 * u_utilities        = various utility functions
   
 **/
-//#define SENSORONLY
-
-#define USESERIALMONITOR
-#define USESERIALCOM
-//#define USESOFTWARESERIAL
-//#define USESD
-
-//comment this out in production
-#define CLIONMONITOR
-#define DEBUG
-//#define DEBUGSENSORS
-//#define DEBUGCONFIG
-//#define DEBUGMEM
-//#define DEBUGHEARTBEAT
-//#define DEBUGTIMESYNC
-//#define SETTIME
-//#define MANUALCONFIG
 
 /** 
 For non-standard libraries copy submodules included under FatRabbitGarden/libraries/ into your Arduino IDE libraries/ folder. 
@@ -46,7 +29,27 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <DHT.h> //DHT by AdaFruit
 #include <SoftwareSerial.h> //DHT by AdaFruit
 
-SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
+//#define SENSORONLY
+
+#define USESERIALMONITOR
+#define USESERIALCOM
+//#define USESOFTWARESERIAL
+//#define USESD
+
+#define CLIONMONITOR
+#define DEBUG
+//#define DEBUGSENSORS
+//#define DEBUGCONFIG
+//#define DEBUGMEM
+//#define DEBUGHEARTBEAT
+//#define DEBUGTIMESYNC
+//#define SETTIME
+//#define MANUALCONFIG
+
+//SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
+
+#define CONFIG_VERSION "1v1"
+#define CONFIG_START 512
 
 const char commandStringSystemHeartbeat[]     = "s:hb";
 const char commandStringSystemRestart[]       = "s:restart";
@@ -98,7 +101,7 @@ int timeAtSync;
 DateTime timeSyncedDateTime;
 
 //the command buffer
-const int maxBufferSize = 64;
+const int maxBufferSize = 2048;
 
 int commandBufferPosition = 0;
 boolean commandBufferReadyToProcess = false;
@@ -173,8 +176,6 @@ struct Sensor{
 /**
 This is the main structure that contains the complete configuration for the system.
 **/
-#define CONFIG_VERSION "1v3"
-#define CONFIG_START 16
 struct ConfigStore{
   char version[4];
   char configId[11];
