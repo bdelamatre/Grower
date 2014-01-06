@@ -1,7 +1,9 @@
-
+  
+#if defined(USESERIALMONITOR) 
 FLASH_STRING(memString,"[DEBUG] [MEMORY] ");
 FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
 FLASH_STRING(bannerBreak,"==========================================");
+#endif
 
 void printDateTimeToSerial(DateTime now){
     Serial.print(now.year(), DEC);
@@ -35,15 +37,19 @@ void printAvailableMemory(){
       Serial.println(memoryFree());
     #endif
 }
-
+  
 void printBanner(){
-    printBreak();
-    banner.print(Serial);Serial.println();
-    printBreak();
+  #if defined(USESERIALMONITOR) 
+      printBreak();
+      banner.print(Serial);Serial.println();
+      printBreak();
+  #endif
 }
 
 void printBreak(){
+  #if defined(USESERIALMONITOR) 
     bannerBreak.print(Serial);Serial.println();
+  #endif
 }
 
 int availableMemory() 
@@ -79,7 +85,15 @@ int memoryFree()
 
 }//end memoryFree()
 
-unsigned long getIdFromParams(String params){
+
+char* getIdFromParams(char* params){
+  
+  return getParamByName(params,fieldId);
+  
+}
+
+
+/*unsigned long getIdFromParams(String params){
   
   String value = getParamByName(params,"id");
   //Serial.print("id value is ");
@@ -88,9 +102,9 @@ unsigned long getIdFromParams(String params){
   
   return idValue;
   
-}
+}*/
 
-String getParamByName(String params, String paramName){
+/*String getParamByName(String params, String paramName){
   
   int commaPosition = 0;
   String param;
@@ -120,9 +134,34 @@ String getParamByName(String params, String paramName){
    
    return "";
   
+}*/
+
+
+
+char* getParamByName(char* originalParams, const char* paramName){
+  
+  //fix-me: put a defined buffer size here for stability
+  char params[maxBufferSize];
+  strcpy(params,originalParams);
+  
+  char* param = strtok(params,"&");
+  
+  while(param > 0){
+    
+    char* thisParamName = strtok(param,"=");
+    
+    if(strstr(paramName,thisParamName)!=0){
+    
+      char* paramValue= strtok(NULL,"=");  
+      return paramValue;
+      
+    }
+    
+    
+    param = strtok(NULL,"&");
+    
+  }
+  
+  return "";
+  
 }
-
-
-
-
-

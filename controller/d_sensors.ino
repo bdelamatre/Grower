@@ -17,14 +17,37 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
   if(checkingSensor.type==0){
     //sensor off
   }else{
-        
+    
+      #if defined(DEBUGSENSORS)
+        Serial.print(checkingSensor.name);
+        Serial.print(", last checked at ");
+        Serial.print(checkingSensor.statusLastChecked);
+      #endif 
+      
       if(checkingSensor.frequencyCheckSeconds>0 && checkingSensor.statusLastChecked>0){
         DateTime nextTime = DateTime(checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds);
+        
+        #if defined(DEBUGSENSORS)
+          Serial.print(", next time in ");
+          Serial.print(checkingSensor.frequencyCheckSeconds);
+          Serial.print(" at a ");
+          Serial.print(nextTime.unixtime());
+        #endif
+        
         if(checkTime.unixtime() < nextTime.unixtime() && checkingSensor.statusLastChecked > 0){
+          
+          #if defined(DEBUGSENSORS)
+            Serial.println();
+          #endif
+          
           return;
         }
       }
-            
+          
+      #if defined(DEBUGSENSORS)   
+        Serial.println();
+      #endif
+      
       checkingSensor.statusLastChecked = checkTime.unixtime();
       
       if(checkingSensor.frequencyLogSeconds>0){
@@ -35,10 +58,6 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
         }
       }
       
-      //#if defined DEBUG
-      //  Serial.println(memoryFree());
-      //#endif
-    
       if(checkingSensor.type==1){
         //soil moisture
         checkSensorSoilMoisture(checkingSensor,checkTime,logMe);
@@ -52,6 +71,17 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
         //light
         checkSensorLight(checkingSensor,checkTime,logMe);
       }
+      
+      #if defined(DEBUGSENSORS)
+        Serial.print(checkingSensor.name);
+        Serial.print("=");
+        Serial.print(checkingSensor.statusValue);
+        if(checkingSensor.statusValue2){
+          Serial.print(", ");
+          Serial.print(checkingSensor.statusValue2);
+        }
+        Serial.println();
+      #endif
       
   }
 

@@ -4,6 +4,8 @@ Zones
 
 ***/
 
+#if !defined(SENSORONLY)
+
 void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>0){
@@ -55,6 +57,6 @@ void turnZoneOff(struct Zone &thisZone, DateTime offTime, int logMe){
     addZoneLog(thisZone,offTime.unixtime(),"off","");
   }
 }
-
+#endif
 
 

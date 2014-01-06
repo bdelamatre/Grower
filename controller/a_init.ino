@@ -3,33 +3,36 @@
 ********************************************/
 
 
-FLASH_STRING(stringOk,"OK");
-FLASH_STRING(stringSpaces,"  ");
-FLASH_STRING(stringBannerItemSpace,"||    ");
-FLASH_STRING(stringBannerSubitemSpace,"||    ");
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
+  FLASH_STRING(stringOk,"OK");
+  FLASH_STRING(stringSpaces,"  ");
+  FLASH_STRING(stringBannerItemSpace,"||    ");
+  FLASH_STRING(stringBannerSubitemSpace,"||    ");
+    
+  FLASH_STRING(stringInitSd,"|| SD ...");
+  FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
+  FLASH_STRING(stringInitSdCardInfo,"card information:");  
+#endif
   
-FLASH_STRING(stringInitSd,"|| SD ...");
-FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
-FLASH_STRING(stringInitSdCardInfo,"card information:");  
   
+#if defined(USESD)
 void initSd(){
   
   //initialize SD
-  #if defined(DEBUG)  
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
       stringInitSd.print(Serial);
   #endif
   
-  pinMode(hardwareSelect, OUTPUT);
+   pinMode(hardwareSelect, OUTPUT);
   //pinMode(10, OUTPUT);
 
   if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    #if defined(DEBUG)
+    #if defined(DEBUG) && defined(USESERIALMONITOR)        
       stringInitSdFail.print(Serial);
       Serial.println();
     #endif
   } else {
-    #if defined(DEBUG)
-     
+    #if defined(DEBUG) && defined(USESERIALMONITOR)
       stringOk.print(Serial);
       stringInitSdCardInfo.print(Serial);
       Serial.print("||  type=");
@@ -52,7 +55,7 @@ void initSd(){
     }else{
       // print the type and size of the first FAT-type volume
       root.openRoot(volume);
-      #if defined(DEBUG)
+      #if defined(DEBUG) && defined(USESERIALMONITOR)  
         uint32_t volumesize;
         Serial.print("FAT ");
         Serial.println(volume.fatType(), DEC);
@@ -63,9 +66,7 @@ void initSd(){
         volumesize /= 1024;
         Serial.print("||  size(MB) = ");
         Serial.println(volumesize);
-      
         Serial.println("||  Files: ");
-        
         // list all files in the card with date and size
         root.ls(LS_R | LS_DATE | LS_SIZE);
       #endif
@@ -75,17 +76,19 @@ void initSd(){
     
   }
   
-} 
+}
+#endif
 
-
+#if defined(DEBUG) && defined(USESERIALMONITOR) 
 FLASH_STRING(stringInitRtc,"|| RTC...");
 FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
 FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
+#endif
 
 void initRtc(){
 
   //initialize clock
-  #if defined(DEBUG)  
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
     stringInitRtc.print(Serial);
   #endif
   
@@ -101,18 +104,18 @@ void initRtc(){
   }else{*/
     
     //RTC is available, lets go ahead and indicate that the time is synced
-    timeSynced = true;
-    timeSyncedDateTime =  getLocalTime();
+    //timeSynced = true;
+    //timeSyncedDateTime =  getLocalTime();
     
       #if defined(SETTIME)
-          #if defined(DEBUG)
+          #if defined(DEBUG) && defined(USESERIALMONITOR)  
             stringManuallySettingTime.print(Serial);
           #endif
           // following line sets the RTC to the date & time this sketch was compiled
           //RTC.adjust(DateTime(__DATE__, __TIME__));
       #endif
     
-    #if defined(DEBUG) 
+    #if defined(DEBUG) && defined(USESERIALMONITOR)  
       stringOk.print(Serial);
       Serial.print("(");  
       printDateTimeToSerial(timeSyncedDateTime);
@@ -123,8 +126,9 @@ void initRtc(){
    
 }
 
-
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");
+#endif
 
 //fix-me: better place for this?
 DateTime getLocalTime(){
@@ -145,7 +149,7 @@ DateTime getLocalTime(){
           //resync every 5 minutes
           if(timeSyncInProgress==false && secondsSinceSync>(60*5)){
             //and initiate sync again
-            sendCommand("config:set-time>");
+            sendCommand("c:time>");
           }
           
           //get the last synced time
@@ -165,13 +169,16 @@ DateTime getLocalTime(){
 void initController(){
  
   initSensors();
+  #if !defined(SENSORONLY)
   initZones();
   initSchedules();
+  #endif
 
 }
 
-
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringInitSensors,"|| Initializing sensors:");
+#endif
 
 void initSensors(){
   #if defined(DEBUG)
@@ -247,15 +254,19 @@ void initSensor(struct Sensor &thisSensor){
 
 }
 
+#if !defined(SENSORONLY)
+
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringInitZones,"|| Initializing zones:");
+#endif
 
 void initZones(){
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
     stringInitZones.print(Serial);
     Serial.println();
   #endif
   for(int i=0;i<maxZones;i++){
-    #if defined(DEBUG)
+    #if defined(DEBUG) && defined(USESERIALMONITOR)  
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
       Serial.print(" - ");
@@ -286,7 +297,9 @@ void initZone(struct Zone &thisZone){
   
 }
 
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringInitSchedules,"|| Initializing schedules:");
+#endif
 
 void initSchedules(){
   #if defined(DEBUG)
@@ -327,34 +340,36 @@ void initSchedule (struct Schedule &thisSchedule){
   //0=off, 1=timer, 2=soil moisture, 3=temperature
   
   #if defined(DEBUG)
-    Serial.print(" - ");
-    Serial.print(thisSchedule.name);
-    Serial.print(" (sensors=");
-    for(int i=0;i<maxSensors;i++){
-      int thisSensorId = thisSchedule.sensors[i];
-      if(thisSensorId > 0){
-        //we subtract one because this is the actual ID
-        thisSensorId--;
-        Sensor thisSensor = configStore.sensors[thisSensorId];
-        Serial.print(thisSensor.name);
-        Serial.print(",");
+    if(thisSchedule.type!=0){
+      Serial.print(" - ");
+      Serial.print(thisSchedule.name);
+      Serial.print(" (sensors=");
+      for(int i=0;i<maxSensors;i++){
+        int thisSensorId = thisSchedule.sensors[i];
+        if(thisSensorId > -1){
+          //we subtract one because this is the actual ID
+          Serial.print(configStore.sensors[thisSensorId].name);
+          Serial.print(",");
+        }
       }
-    }
+        
+      Serial.print(" zones=");
+      for(int i=0;i<maxZones;i++){
+        int thisZoneId = thisSchedule.zones[i];
+        //Serial.println(thisZoneId);
+        if(thisZoneId > -1){
+          //we subtract one because this is the actual ID
+          Serial.print(configStore.zones[thisZoneId].name);
+          Serial.print(",");
+        }
+      }
       
-    Serial.print(" zones=");
-    for(int i=0;i<maxZones;i++){
-      int thisZoneId = thisSchedule.zones[i];
-      if(thisZoneId > 0){
-        //we subtract one because this is the actual ID
-        thisZoneId--;
-        Zone thisZone = configStore.zones[thisZoneId];
-        Serial.print(thisZone.name);
-        Serial.print(",");
-      }
-    }
+      Serial.print(")");
     
-    Serial.println(")");
+    }
+    Serial.println();
   #endif
   
 }
+#endif
 

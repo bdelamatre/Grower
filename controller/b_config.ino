@@ -1,34 +1,34 @@
-const char blankName[maxNameLength] = "blank                  "; 
+
+const char blankName[maxNameLength] = "               "; 
 
 const char fieldId[] = "id";
 const char fieldType[] = "type";
 const char fieldName[] = "name";
 const char fieldPin[] = "pin";
-const char fieldSafetyOffAfterMinutes[] = "safetyOffAfterMinutes";
-const char fieldOverrideOn[] = "overrideOn";
+const char fieldSafetyOffAfterMinutes[] = "sftyOff";
+const char fieldOverrideOn[] = "ovrdeOn";
 const char fieldPin2[] = "pin2";
-const char fieldFrequencyCheckSeconds[] = "frequencyCheckSeconds";
-const char fieldFrequencyLogSeconds[] = "frequencyLogSeconds";
-const char fieldZones[] = "zones";
-const char fieldSensors[] = "sensors";
-const char fieldZonesRunType[] = "zonesRunType";
-const char fieldTimerStartWeekdays[] = "timerStartWeekdays";
-const char fieldTimerStartHours[] = "timerStartHours";
-const char fieldTimerStartMinutes[] = "timerStartMinutes";
-const char fieldTimerStartSeconds[] = "timerStartSeconds";
-const char fieldValueMin[] = "valueMin";
-const char fieldValueMax[] = "valueMax";
+const char fieldFrequencyCheckSeconds[] = "frqCheck";
+const char fieldFrequencyLogSeconds[] = "frqLog";
+const char fieldZones[] = "z";
+const char fieldSensors[] = "s";
+const char fieldZonesRunType[] = "zRun";
+const char fieldTimerStartWeekdays[] = "tw";
+const char fieldTimerStartHours[] = "th";
+const char fieldTimerStartMinutes[] = "tm";
+const char fieldTimerStartSeconds[] = "ts";
+const char fieldValueMin[] = "min";
+const char fieldValueMax[] = "max";
 
 
-void getIdsFromValue(int resultArray[],String value,char delimitter=',',boolean shiftValues=false){
+void getIdsFromValue(int resultArray[],int arrayLength, String value,char delimitter=',',boolean shiftValues=false){
   
-    int maxLength = sizeof(resultArray);
     int thisPosition;
     String thisParam;
     int lastPosition = 0;
-    
+        
      //cycle through this parameter by comma delimited
-     while(thisPosition >= 0 && thisPosition < maxLength){
+     while(thisPosition >= 0 && lastPosition < arrayLength){
          
         thisPosition = value.indexOf(delimitter);
       
@@ -42,14 +42,14 @@ void getIdsFromValue(int resultArray[],String value,char delimitter=',',boolean 
              continue;
            }
         }
-        
+                
         resultArray[lastPosition] = thisParam.toInt();
         if(shiftValues==true){
+          //Serial.println("shifting up one");
           resultArray[lastPosition]++;  
         }
         lastPosition++;
      }
-          
 
 }
 
@@ -61,7 +61,6 @@ void loadConfig() {
     Serial.print(")...");
   #endif
   
-  
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
       EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
       EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2]){
@@ -71,7 +70,6 @@ void loadConfig() {
     for (unsigned int t=0; t<configSize; t++){
       *((char*)&configStore + t) = EEPROM.read(CONFIG_START + t);
     }
-    
     
     #if defined DEBUG
     Serial.print(configSize);
@@ -84,26 +82,37 @@ void loadConfig() {
   
 }
 
-
+#if defined(USESERIALMONITOR)  
 FLASH_STRING(stringSaveConfigWriting,"Writing ");
 FLASH_STRING(stringSaveConfigWritingCurrent,"Current configuration saved to EEPROM.");
 FLASH_STRING(stringSaveConfigWritingDone," done!");
+FLASH_STRING(stringConfigSaved,"Current configuration saved to EEPROM.");
+FLASH_STRING(stringConfigSaveAsIdChanged,"Configuration ID changed from ");
+FLASH_STRING(stringConfigSaveAsIdTo," to ");
+FLASH_STRING(stringResettingDefault,"Resetting to default.");
+#endif
 
 void saveConfig() {
   
-    stringSaveConfigWriting.print(Serial);
-    Serial.print(sizeof(configStore));
-    stringSaveConfigWritingCurrent.print(Serial);
+    #if defined(USESERIALMONITOR)  
+      stringSaveConfigWriting.print(Serial);
+      Serial.print(sizeof(configStore));
+      stringSaveConfigWritingCurrent.print(Serial);
+    #endif
     
     //EEPROM.writeBlock(CONFIG_START, configStore);
     for (unsigned int t=0; t<sizeof(configStore); t++)
         EEPROM.write(CONFIG_START + t, *((char*)&configStore + t));
 
-    stringSaveConfigWritingDone.print(Serial);
-    Serial.println();
-    
+
     configInProgress=false;
-    Serial.println("config mode ended");
+    
+    #if defined(USESERIALMONITOR)  
+      stringSaveConfigWritingDone.print(Serial);
+      Serial.println();
+      Serial.println("config mode ended");
+    #endif
+    
 }
 
 void resetDefaultConfig(){
@@ -113,48 +122,51 @@ void resetDefaultConfig(){
 }
 
 
-FLASH_STRING(stringConfigSaved,"Current configuration saved to EEPROM.");
 
-void commandConfigSave(String logId){
+void commandConfigSave(char* logId){
   saveConfig();
-  stringConfigSaved.print(Serial);
-  Serial.println();
+  #if defined(USESERIALMONITOR)  
+    stringConfigSaved.print(Serial);
+    Serial.println();
+  #endif
 }
 
-FLASH_STRING(stringConfigSaveAsIdChanged,"Configuration ID changed from ");
-FLASH_STRING(stringConfigSaveAsIdTo," to ");
 
-void commandConfigSaveAsId(String params){
+void commandConfigSaveAsId(char* params){
+    
+  #if defined(USESERIALMONITOR)  
+    stringConfigSaveAsIdChanged.print(Serial);
+    Serial.print(configStore.configId);
+    stringConfigSaveAsIdTo.print(Serial);
+  #endif
   
-  unsigned long id = getIdFromParams(params);
-  
-  stringConfigSaveAsIdChanged.print(Serial);
-  Serial.print(configStore.configId);
-  stringConfigSaveAsIdTo.print(Serial);
-  
-  configStore.configId = id;
-  
-  Serial.println(id);
-  
+  char* id = getParamByName(params,fieldId);
+  strcpy(configStore.configId,id);
   configInProgress = true;
-  Serial.println("config mode started");
+  
+  #if defined(USESERIALMONITOR)  
+    Serial.println(id);
+    Serial.println("config mode started");
+  #endif
+  
 }
 
-
-FLASH_STRING(stringResettingDefault,"Resetting to default.");
-
-void commandConfigResetDefault(String params){
-  stringResettingDefault.print(Serial);
-  Serial.println();
+void commandConfigResetDefault(char* params){
+  #if defined(USESERIALMONITOR)  
+    stringResettingDefault.print(Serial);
+    Serial.println();
+  #endif
   resetDefaultConfig();
 }
 
+#if defined(USESERIALMONITOR)  
 //FLASH_STRING(stringSettingTime,"Setting time from unixtime ");
 FLASH_STRING(stringAdjustingRTC,"Adjusting RTC to ");
 FLASH_STRING(stringTimeSynced,"Time synced to ");
+#endif
 
 DateTime commandConfigSetTime(unsigned long int timeunix){
-  
+    
     //build DateTime object from unix timestamp
     DateTime thisDateTime = DateTime(timeunix);
   
@@ -172,335 +184,335 @@ DateTime commandConfigSetTime(unsigned long int timeunix){
       RTC.adjust(thisDateTime); 
     }*/
     
-    stringTimeSynced.print(Serial);
-    printDateTimeToSerial(thisDateTime);
-    Serial.println();
+    #if defined(USESERIALMONITOR)  
+      stringTimeSynced.print(Serial);
+      printDateTimeToSerial(thisDateTime);
+      Serial.println();
+    #endif
     
     return thisDateTime;
 }
 
+#if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
 FLASH_STRING(stringInvalidId," isn't a valid id ");
 FLASH_STRING(stringUpdatingId,"Updating config for id ");
 FLASH_STRING(stringResettingId,"Resetting config for id ");
 FLASH_STRING(stringChanging,"Changing ");
 FLASH_STRING(stringChangingTo," to ");
+#endif
 
-void commandConfigZone(String params){
-
+#if !defined(SENSORONLY)
+void commandConfigZone(char* params){
+  
   //get id
-  //int zoneId = getIdFromParams(params);
-  unsigned long zoneId = getIdFromParams(params);
-
+  int zoneId = atoi(getIdFromParams(params));
+  
   if(zoneId<0 || zoneId>maxZones){
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       Serial.print(zoneId);
       stringInvalidId.print(Serial);
       Serial.println();
     #endif
     return;
   }else{
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       stringUpdatingId.print(Serial);
       Serial.println(zoneId);
     #endif;
   } 
+    
+  char *param = strtok_r(params,"&",&params);
   
-  int commaPosition;
-  String param;
+  while(param != NULL){
+      
+      char* name = strtok_r(param,"=",&param);
+      char* value = strtok_r(NULL,"=",&param);  
   
-  //
-  while(commaPosition >= 0){
-      commaPosition = params.indexOf('&');
-
-      if(commaPosition != -1){
-          param = params.substring(0,commaPosition);
-          params = params.substring(commaPosition+1, params.length());
-      }else{ 
-         if(params.length() > 0)
-           param = params; 
+      param = strtok_r(NULL,"&",&params);   
+      
+      if(strcmp(name,fieldName)==0){
+        strncpy(configStore.zones[zoneId].name,value,maxNameLength);
+      }else if(strcmp(name,fieldType)==0){
+        configStore.zones[zoneId].type = atoi(value);
+      }else if(strcmp(name,fieldPin)==0){
+        configStore.zones[zoneId].pin = atoi(value);
+      }else if(strcmp(name,fieldSafetyOffAfterMinutes)==0){
+        configStore.zones[zoneId].safetyOffAfterMinutes = atoi(value);
+      }else if(strcmp(name,fieldOverrideOn)==0){
+        configStore.zones[zoneId].overrideOn = atoi(value);
+      }else{
+        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+          Serial.print(name);
+          Serial.println(" invalid property name");
+        #endif
+        continue;
       }
-     
-      String nameString  = param.substring(0,param.indexOf("="));
       
-      char name[maxNameLength];
-      nameString.toCharArray(name,maxNameLength);
-      
-      String value = param.substring(param.indexOf("=")+1);
-      
-      #if defined(DEBUGCONFIG)    
-        Serial.print("Changing ");
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print("Changed ");
         Serial.print(name);
         Serial.print(" to ");
         Serial.println(value);
       #endif
       
-      if(strcmp(name,fieldName)==0){
-        value.toCharArray(configStore.zones[zoneId].name,32);
-      }else if(strcmp(name,fieldType)==0){
-        configStore.zones[zoneId].type = value.toInt();
-      }else if(strcmp(name,fieldPin)==0){
-        configStore.zones[zoneId].pin = value.toInt();
-      }else if(strcmp(name,fieldSafetyOffAfterMinutes)==0){
-        configStore.zones[zoneId].safetyOffAfterMinutes = value.toInt();
-      }else if(strcmp(name,fieldOverrideOn)==0){
-        configStore.zones[zoneId].overrideOn = value.toInt();
-      }
-      
    }
    
 }
 
-void commandConfigZoneReset(String params){
+void commandConfigZoneReset(char* params){
 
-  params = getParamByName(params,"id");
+  char* ids = getIdFromParams(params);
   
   int zoneIds[maxZones];
-  
   for(int i=0;i<maxZones;i++){
-    zoneIds[i] = 0;
+    zoneIds[i] = -1;
   }
   
-  getIdsFromValue(zoneIds,params);
+  getIdsFromValue(zoneIds,maxZones,ids);
   
   for(int i=0;i<maxZones;i++){
     
-   if(zoneIds[i]>0 && zoneIds[i]<maxZones){
-      String tmpName = "";
-      tmpName.toCharArray(configStore.zones[zoneIds[i]].name,maxNameLength);
-      //strlcpy(configStore.zones[zoneIds[i]].name,blankName,maxNameLength);
-      configStore.zones[zoneIds[i]].type = 0;
-      configStore.zones[zoneIds[i]].pin = -1;
-      configStore.zones[zoneIds[i]].safetyOffAfterMinutes = 0;
-      configStore.zones[zoneIds[i]].overrideOn = -1;
+   int thisId = zoneIds[i];
+    
+   if(thisId > -1 && thisId < maxZones){
+     
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print("resetting id ");
+        Serial.println(thisId);
+      #endif
+      
+      strncpy(configStore.zones[thisId].name,blankName,maxNameLength);
+      configStore.zones[thisId].type = 0;
+      configStore.zones[thisId].pin = -1;
+      configStore.zones[thisId].safetyOffAfterMinutes = 0;
+      configStore.zones[thisId].overrideOn = -1;
+    }else{
+      
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print(thisId);
+        Serial.println(" invalid");
+      #endif
+      
     }
     
   }
     
 }
+#endif
 
-
-void commandConfigSensor(String params){
+void commandConfigSensor(char* params){
   
   //get id
   //int sensorId = getIdFromParams(params);
-  unsigned long sensorId = getIdFromParams(params);
-    
+  int sensorId = atoi(getIdFromParams(params));
+
   if(sensorId<0 || sensorId>maxSensors){
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       Serial.print(sensorId);
       stringInvalidId.print(Serial);
       Serial.println();
     #endif
     return;
   }else{
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       stringUpdatingId.print(Serial);
       Serial.println(sensorId);
     #endif
   } 
   
-  int commaPosition;
-  String param;
+  char *param = strtok_r(params,"&",&params);
   
-  //
-  while(commaPosition >= 0){
-    
-      commaPosition = params.indexOf('&');
-
-      if(commaPosition != -1){
-          param = params.substring(0,commaPosition);
-          params = params.substring(commaPosition+1, params.length());
-      }else{ 
-         if(params.length() > 0)
-           param = params; 
+  while(param != NULL){
+      
+      char* name = strtok_r(param,"=",&param);
+      char* value = strtok_r(NULL,"=",&param);  
+  
+      param = strtok_r(NULL,"&",&params);   
+      
+      if(strcmp(name,fieldName)==0){
+        strncpy(configStore.sensors[sensorId].name,value,maxNameLength);
+      }else if(strcmp(name,fieldType)==0){
+        configStore.sensors[sensorId].type = atoi(value);
+      }else if(strcmp(name,fieldPin)==0){
+        configStore.sensors[sensorId].pin = atoi(value);
+      }else if(strcmp(name,fieldPin2)==0){
+        configStore.sensors[sensorId].pin2 = atoi(value);
+      }else if(strcmp(name,fieldFrequencyCheckSeconds)==0){
+        configStore.sensors[sensorId].frequencyCheckSeconds = atoi(value);
+      }else if(strcmp(name,fieldFrequencyLogSeconds)==0){
+        configStore.sensors[sensorId].frequencyLogSeconds = atoi(value);
+      }else{
+        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+          Serial.print(name);
+          Serial.println(" invalid property name");
+        #endif
+        continue;
       }
-     
-      String nameString  = param.substring(0,param.indexOf("="));
       
-      char name[maxNameLength];
-      nameString.toCharArray(name,maxNameLength);      String value = param.substring(param.indexOf("=")+1);
-      
-      #if defined(DEBUGCONFIG)    
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
         stringChanging.print(Serial);
         Serial.print(name);
         stringChangingTo.print(Serial);
         Serial.println(value);
       #endif
       
-      if(strcmp(name,fieldName)==0){
-        value.toCharArray(configStore.sensors[sensorId].name,32);
-      }else if(strcmp(name,fieldType)==0){
-        configStore.sensors[sensorId].type = value.toInt();
-        Serial.println(configStore.sensors[sensorId].type);
-      }else if(strcmp(name,fieldPin)==0){
-        configStore.sensors[sensorId].pin = value.toInt();
-      }else if(strcmp(name,fieldPin2)==0){
-        configStore.sensors[sensorId].pin2 = value.toInt();
-      }else if(strcmp(name,fieldFrequencyCheckSeconds)==0){
-        configStore.sensors[sensorId].frequencyCheckSeconds = value.toInt();
-      }else if(strcmp(name,fieldFrequencyLogSeconds)==0){
-        configStore.sensors[sensorId].frequencyLogSeconds = value.toInt();
-      }
-      
    }   
   
 }
 
-void commandConfigSensorReset(String params){
+void commandConfigSensorReset(char* params){
   
-  params = getParamByName(params,"id");
+  char* ids = getIdFromParams(params);
   
   int sensorIds[maxSensors];
   
   for(int i=0;i<maxSensors;i++){
-    sensorIds[i] = 0;
+    sensorIds[i] = -1;
   }
   
-  getIdsFromValue(sensorIds,params);
+  getIdsFromValue(sensorIds,maxSensors,ids);
   
   for(int i=0;i<maxSensors;i++){
-    
-    if(sensorIds[i]>0 && sensorIds[i]<maxSensors){
-      String tmpName = "";
-      tmpName.toCharArray(configStore.sensors[sensorIds[i]].name,maxNameLength);
-      //strlcpy(configStore.sensors[sensorIds[i]].name,blankName,maxNameLength);
-      configStore.sensors[sensorIds[i]].type = 0;
-      configStore.sensors[sensorIds[i]].pin = -1;
-      configStore.sensors[sensorIds[i]].pin2 = -1;
-      configStore.sensors[sensorIds[i]].frequencyCheckSeconds = 99;
-      configStore.sensors[sensorIds[i]].frequencyLogSeconds = 99;
+          
+    int thisId = sensorIds[i];
+      
+    if(thisId>=0 && thisId<maxSensors){
+      
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print("resetting id ");
+        Serial.println(thisId);
+      #endif
+      
+      strncpy(configStore.sensors[thisId].name,blankName,maxNameLength);
+      configStore.sensors[thisId].type = 0;
+      configStore.sensors[thisId].pin = -1;
+      configStore.sensors[thisId].pin2 = -1;
+      configStore.sensors[thisId].frequencyCheckSeconds = 99;
+      configStore.sensors[thisId].frequencyLogSeconds = 99;
+      
+    }else{
+      
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print(thisId);
+        Serial.println(" invalid");
+      #endif
+      
     }
     
   }
       
 }
 
-
-void commandConfigSchedule(String params){
+#if !defined(SENSORONLY)
+void commandConfigSchedule(char* params){
   
   //get id
-  unsigned long scheduleId = getIdFromParams(params);
+  int scheduleId = atoi(getIdFromParams(params));
     
   if(scheduleId<0 || scheduleId>maxZones){
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       Serial.print(scheduleId);
       stringInvalidId.print(Serial);
       Serial.println();
     #endif
     return;
   }else{
-    #if defined(DEBUGCONFIG)    
+    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
       stringUpdatingId.print(Serial);
       Serial.println(scheduleId);
     #endif
   } 
   
-  int commaPosition;
-  String param;
+  char *param = strtok_r(params,"&",&params);
   
-  while(commaPosition >= 0){
-     
-      //get position of first seperator
-      commaPosition = params.indexOf('&');
-
-      if(commaPosition != -1){
-          param = params.substring(0,commaPosition);
-          params = params.substring(commaPosition+1, params.length());
-      }else{ 
-         //if(params.length() > 0){
-           param = params; 
-         //}
-      }
-     
-      String nameString  = param.substring(0,param.indexOf("="));
+  while(param != NULL){
       
-      char name[maxNameLength];
-      nameString.toCharArray(name,maxNameLength);      String value = param.substring(param.indexOf("=")+1);
-     
-      #if defined(DEBUGCONFIG)    
-        stringChanging.print(Serial);
-        Serial.print(name);
-        stringChangingTo.print(Serial);
-        Serial.println(value);
-      #endif
+      char* name = strtok_r(param,"=",&param);
+      char* value = strtok_r(NULL,"=",&param);  
+  
+      param = strtok_r(NULL,"&",&params);   
       
       if(strcmp(name,fieldName)==0){
-        value.toCharArray(configStore.schedules[scheduleId].name,32);
+        strncpy(configStore.schedules[scheduleId].name,value,maxNameLength);
       }else if(strcmp(name,fieldType)==0){
-        configStore.schedules[scheduleId].type = value.toInt();
+        configStore.schedules[scheduleId].type = atoi(value);
       }else if(strcmp(name,fieldZones)==0){
         
           int zoneIds[maxZones];
           
           for(int i=0;i<maxZones;i++){
-            zoneIds[i] = 0;
+            zoneIds[i] = -1;
           }
           
-          getIdsFromValue(zoneIds,value,',',true);
+          getIdsFromValue(zoneIds,maxZones,value);
           
           for(int i=0;i<maxZones;i++){
             
-             #if defined(DEBUGCONFIG)    
+            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                Serial.print(" set zone position ");
                Serial.print(i);
              #endif
               
-            if(zoneIds[i]>0){
+            if(zoneIds[i]>-1){
                 configStore.schedules[scheduleId].zones[i] = zoneIds[i];
                 
-                #if defined(DEBUGCONFIG)    
+                #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                   Serial.print(" to zone id ");
                   Serial.print(configStore.schedules[scheduleId].zones[i]);
                 #endif
             }else{
                configStore.schedules[scheduleId].zones[i] = -1;
                
-              #if defined(DEBUGCONFIG)    
+              #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                  Serial.print(" to null ");
                #endif
             }
             
-            #if defined(DEBUGCONFIG)    
+            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+              Serial.print(" from ");
+              Serial.print(zoneIds[i]); 
               Serial.println();
             #endif
             
           }
         
       }else if(strcmp(name,fieldZonesRunType)==0){
-        configStore.schedules[scheduleId].zonesRunType = value.toInt();
+        configStore.schedules[scheduleId].zonesRunType = atoi(value);
       }else if(strcmp(name,fieldSensors)==0){
                 
           int sensorIds[maxSensors];
           
           for(int i=0;i<maxSensors;i++){
-            sensorIds[i] = 0;
+            sensorIds[i] = -1;
           }
           
-          getIdsFromValue(sensorIds,value,',',true);
+          getIdsFromValue(sensorIds,maxSensors,value);
           
           for(int i=0;i<maxSensors;i++){
             
-             #if defined(DEBUGCONFIG)    
+             #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                Serial.print(" set sensor position ");
                Serial.print(i);
              #endif
              
-            if(sensorIds[i]>0){
+            if(sensorIds[i]>-1){
                 configStore.schedules[scheduleId].sensors[i] = sensorIds[i];
                 
-                #if defined(DEBUGCONFIG)    
+                #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                   Serial.print(" set to sensor id ");
                   Serial.print(configStore.schedules[scheduleId].sensors[i]);
                 #endif
             }else{
                configStore.schedules[scheduleId].sensors[i] = -1;
                
-              #if defined(DEBUGCONFIG)    
+               #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
                  Serial.print(" to null ");
                #endif
             }
             
-            #if defined(DEBUGCONFIG)    
+            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+              Serial.print(" from ");
+              Serial.print(sensorIds[i]);     
               Serial.println();
             #endif
             
@@ -509,81 +521,108 @@ void commandConfigSchedule(String params){
       }else if(strcmp(name,fieldTimerStartWeekdays)==0){
         //cycle through weekdays
         for(int i=0;i<7;i++){
-           configStore.schedules[scheduleId].timerStartWeekdays[i] = (int)value.charAt(i);
+           configStore.schedules[scheduleId].timerStartWeekdays[i] = (int)value[i];
         }
       }else if(strcmp(name,fieldTimerStartHours)==0){
         //cycle through hours
         for(int i=0;i<24;i++){
-           configStore.schedules[scheduleId].timerStartHours[i] = (int)value.charAt(i);
+           configStore.schedules[scheduleId].timerStartHours[i] = (int)value[i];
         }
       }else if(strcmp(name,fieldTimerStartMinutes)==0){
         //cycle through minutes
         for(int i=0;i<60;i++){
-           configStore.schedules[scheduleId].timerStartMinutes[i] = (int)value.charAt(i);
+           configStore.schedules[scheduleId].timerStartMinutes[i] = (int)value[i];
         }
       }else if(strcmp(name,fieldTimerStartSeconds)==0){
         //cycle through seconds
         for(int i=0;i<60;i++){
-           configStore.schedules[scheduleId].timerStartSeconds[i] = (int)value.charAt(i);
+           configStore.schedules[scheduleId].timerStartSeconds[i] = (int)value[i];
         }
       }else if(strcmp(name,fieldValueMin)==0){
-        configStore.schedules[scheduleId].valueMin = value.toInt();
+        configStore.schedules[scheduleId].valueMin = atoi(value);
       }else if(strcmp(name,fieldValueMax)==0){ 
-        configStore.schedules[scheduleId].valueMax = value.toInt();
+        configStore.schedules[scheduleId].valueMax = atoi(value);
+      }else{
+        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+          Serial.print(name);
+          Serial.println(" invalid property name");
+        #endif
+        continue;
       }
+   
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        stringChanging.print(Serial);
+        Serial.print(name);
+        stringChangingTo.print(Serial);
+        Serial.println(value);
+      #endif
    
    }
   
 }
 
-void commandConfigScheduleReset(String params){
+void commandConfigScheduleReset(char* params){
   
-  String value = getParamByName(params,"id");
+  char* value = getIdFromParams(params);
   
   int scheduleIds[maxSchedules];
   
   for(int i=0;i<maxSchedules;i++){
-    scheduleIds[i] = 0;
+    scheduleIds[i] = -1;
   }
   
-  getIdsFromValue(scheduleIds,value);
+  getIdsFromValue(scheduleIds,maxSchedules,value);
   
   for(int i=0;i<maxSchedules;i++){
     
-    if(scheduleIds[i]>0 && scheduleIds[i]<maxSchedules){
-        String tmpName = "";
-        tmpName.toCharArray(configStore.schedules[scheduleIds[i]].name,maxNameLength);
-        configStore.schedules[scheduleIds[i]].type = 0;
+    int thisId = scheduleIds[i];
+    
+    if(thisId>=0 && thisId<maxSchedules){
+      
+        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+          Serial.print("resetting id ");
+          Serial.println(thisId);
+        #endif
+      
+        strncpy(configStore.schedules[thisId].name,blankName,maxNameLength);
+        configStore.schedules[thisId].type = 0;
         int thisPosition = 0;
         while(thisPosition < maxZones){
-          configStore.schedules[scheduleIds[i]].zones[thisPosition] = 0;
+          configStore.schedules[thisId].zones[thisPosition] = 0;
           thisPosition++;
         }
         thisPosition = 0;
-        configStore.schedules[scheduleIds[i]].zonesRunType = 0;
+        configStore.schedules[thisId].zonesRunType = 0;
         while(thisPosition < maxSensors){
-           configStore.schedules[scheduleIds[i]].sensors[thisPosition] = 0;
+           configStore.schedules[thisId].sensors[thisPosition] = 0;
            thisPosition++;
         }
         for(int i=0;i<7;i++){
-           configStore.schedules[scheduleIds[i]].timerStartWeekdays[i] = 0;
+           configStore.schedules[thisId].timerStartWeekdays[i] = 0;
         }
         for(int i=0;i<24;i++){
-           configStore.schedules[scheduleIds[i]].timerStartHours[i] = 0;
+           configStore.schedules[thisId].timerStartHours[i] = 0;
         }
         for(int i=0;i<60;i++){
-           configStore.schedules[scheduleIds[i]].timerStartMinutes[i] = 0;
+           configStore.schedules[thisId].timerStartMinutes[i] = 0;
         }
         for(int i=0;i<60;i++){
-           configStore.schedules[scheduleIds[i]].timerStartSeconds[i] = 0;
+           configStore.schedules[thisId].timerStartSeconds[i] = 0;
         }
-        configStore.schedules[scheduleIds[i]].valueMin = 0;
-        configStore.schedules[scheduleIds[i]].valueMax = 0;
+        configStore.schedules[thisId].valueMin = 0;
+        configStore.schedules[thisId].valueMax = 0;
+    }else{
+      
+      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+        Serial.print(thisId);
+        Serial.println(" invalid");
+      #endif
+      
     }
     
   }
   
   
 }
-
+#endif
 

@@ -1,92 +1,135 @@
+const char sendTermination = '>';
+const char receiveTermination = '<';
 
-const char commandStringSystemHeartbeat[]     = "system:heartbeat";
-const char commandStringSystemRestart[]       = "system:restart";
-const char commandStringSystemReinit[]        = "system:reinit";
-const char commandStringConfigSaveAsId[]      = "config:save-as-id";
-const char commandStringConfigSave[]          = "config:save";
-const char commandStringConfigResetDefault[]  = "config:reset-default";
-const char commandStringConfigSetTime[]       = "config:set-time";
-const char commandStringDataLogReceived[]     = "data:log-received";
-const char commandStringConfigZone[]          = "config:zone";
-const char commandStringConfigZoneReset[]     = "config:zone-reset";
-const char commandStringConfigSensor[]        = "config:sensor";
-const char commandStringConfigSensorReset[]   = "config:sensor-reset";
-const char commandStringConfigSchedule[]      = "config:schedule";
-const char commandStringConfigScheduleReset[] = "config:schedule-reset";
-const char commandStringHelp[]                = "help";
-
-
-//FLASH_STRING(stringSyncInProgress,"Time sync in progress");
-
-
-
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringSendingCommand,"[TX] ");
+FLASH_STRING(stringExecuting,"[RX] ");
+FLASH_STRING(stringWith," ,paramater= ");
+FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
+#endif
+  
+void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+  
+  if((bufferPosition-2)>=maxBufferSize){
+    #if defined(USESERIALMONITOR)
+      Serial.println("buffer overflowing");
+    #endif
+    //memset(commandBuffer,0,maxBufferSize);
+    //fix-me: we need to do something better here
+    restart();
+    return;
+  }
 
-void receiveCommand(HardwareSerial &serial, String &commandBuffer){
+  char inChar;
+  
+  while(serial.available()>0){
+    
+    inChar = serial.read(); 
+        
+    //done building command
+    if (inChar == '^') {
+      readyToProcess = true;
+      return;
+    }else{
+      commandBuffer[bufferPosition] = inChar;
+      bufferPosition++;
+    }
+  }  
+  
+}  
+
+void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+  
+  if((bufferPosition-2)>=maxBufferSize){
+    #if defined(USESERIALMONITOR)
+      Serial.println("buffer overflowing");
+    #endif
+    //memset(commandBuffer,0,maxBufferSize);
+    //fix-me: we need to do something better here
+    restart();
+    return;
+  }
+
+  char inChar;
+  
+  while(serial.available()>0){
+    
+    inChar = serial.read(); 
+    
+    //done building command
+    if (inChar == '^') {
+      readyToProcess = true;
+      return;
+    }else{
+      commandBuffer[bufferPosition] = inChar;
+      bufferPosition++;
+    }
+  }  
+  
+}
+  
+
+
+
+
+void processBuffer(char* commandBuffer){
+  
+   Serial.print("process=");
+   Serial.println(commandBuffer);
+     
+    char * thisCommand = strtok_r(commandBuffer,"<",&commandBuffer);
+    while (commandBuffer != NULL)
+    {
       
-    while(serial.available()){
-      char inChar = (char)serial.read(); 
-      commandBuffer += inChar;
-      //Serial.println(commandBuffer);
-      //done building command
-      if (inChar == '>') {
-        //if not an empty command
-        if(commandBuffer!=">"){
-          //send the command
-          sendCommand(commandBuffer);
-        }
-        //than empty the command
-        commandBuffer = "";
-      }else if (inChar == '<') {
-        if(commandBuffer!="<"){
-          //empty command, ignore
-          //has paramaters
-          if(commandBuffer.indexOf("?")>=0){
-            executeCommand(commandBuffer.substring(0,commandBuffer.indexOf("?"))+"<"
-                          ,commandBuffer.substring(commandBuffer.indexOf("?")+1,commandBuffer.length()-1));
-          //doesn't have parameters
-          }else{
-            executeCommand(commandBuffer,"");
-          }
-        }
-        commandBuffer = "";
+      if(strchr(thisCommand,'?')!=0){
+        executeCommand(strtok(thisCommand,"?"),strtok(NULL,"?"));
+      //doesn't have parameters
+      }else{
+        executeCommand(thisCommand,"");
       }
-    }  
-
+      
+      thisCommand = strtok_r(NULL,"<",&commandBuffer);
+    }
+    
 }
 
-void sendCommand(String thisCommand){
-      
+void sendCommand(char* thisCommand){
+        
   //these commands need special processing
-  if(thisCommand=="config:set-time>"){
+  if(strstr(thisCommand,commandStringConfigSetTime)!=0){
     
     timeSyncInProgress = true;
-    #if defined(DEBUGTIMESYNCD)
+    #if defined(DEBUGTIMESYNC)
       stringSendingCommand.print(Serial);
       Serial.println(thisCommand);
     #endif
-  }else if(thisCommand.indexOf("system:heartbeat")>-1){
+  }else if(strstr(thisCommand,commandStringSystemHeartbeat)!=0){
 
-    heartBeatInProgress = true;
     heartBeatSent = millis();
+    heartBeatInProgress = true;
+      
     #if defined(DEBUGHEARTBEAT)
       stringSendingCommand.print(Serial);
       Serial.println(thisCommand);
     #endif
+    
   }else{
-    stringSendingCommand.print(Serial);
-    Serial.println(thisCommand);
+    #if defined(USESERIALMONITOR)
+      stringSendingCommand.print(Serial);
+      Serial.println(thisCommand);
+    #endif
   }
-  
-  //write the command to impee byte-by-byte
-  int commandLength = thisCommand.length();
-  int i = 0;
-  while(i<commandLength){
-    char sendChar = thisCommand.charAt(i);
-    Serial1.write(byte(sendChar));
-    i++;
-  }
-  
+    
+  #if defined(USESERIALCOM)
+  #if defined(USESOFTWARESERIAL)  
+    softSerial.write(thisCommand);
+    softSerial.write(">");
+  #else
+    Serial1.write(thisCommand);
+    Serial1.write(">");
+  #endif
+  #endif
+ 
   #if defined(DEBUG)
     printAvailableMemory();
   #endif
@@ -98,73 +141,55 @@ void sendCommand(String thisCommand){
 Generic handler for executing commands received from the Electric Imp
 **/
 
-FLASH_STRING(stringExecuting,"[RX] ");
-FLASH_STRING(stringWith," ,paramater= ");
-FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 
-void executeCommand(String command, String params){
-   
-  int commandLength = command.length();
-  char commandString[commandLength];
-  command.toCharArray(commandString, commandLength);
+void executeCommand(char* command, char* params){
     
   boolean isHeartbeat = false;
   boolean isTimesync = false;
   boolean isUnrecognized = false;
     
- //Serial.print("command=");
- //Serial.println(commandString);   
-    
- //Serial.println(commandStringConfigSaveAsId);
- //int test = strcmp(commandString,commandStringConfigSaveAsId);
- //Serial.println(test);
- 
   //set time from unixtime
-  if(strcmp(commandString,commandStringSystemHeartbeat)==0){
-      commandSystemHeartbeat(params.toInt());
+  if(strcmp(command,commandStringSystemHeartbeat)==0){
+      commandSystemHeartbeat(params);
       isHeartbeat = true;
   //confirm that a data log was received
-  }else if(strcmp(commandString,commandStringConfigSetTime)==0){
-      commandConfigSetTime(params.toInt());
+  }else if(strcmp(command,commandStringConfigSetTime)==0){
+      commandConfigSetTime(atol(params));
       isTimesync = true;
   //save configuration to EEPROM
-  }else if(strcmp(commandString,commandStringConfigSaveAsId)==0){
+  }else if(strcmp(command,commandStringConfigSaveAsId)==0){
       //Serial.println("save as id");
       commandConfigSaveAsId(params);
-  }else if(strcmp(commandString,commandStringConfigSave)==0){
+  }else if(strcmp(command,commandStringConfigSave)==0){
       commandConfigSave(params);
   //reset configuration to default (nullify EEPROM)
-  }else if(strcmp(commandString,commandStringConfigResetDefault)==0){
+  }else if(strcmp(command,commandStringConfigResetDefault)==0){
       commandConfigResetDefault(params);
   //restart the controller
-  }else if(strcmp(commandString,commandStringSystemRestart)==0){
-      Serial.println("restarting system...");
+  }else if(strcmp(command,commandStringSystemRestart)==0){
       commandSystemRestart(params);
   //confirm that a data log was received
-  }else if(strcmp(commandString,commandStringSystemReinit)==0){
+  }else if(strcmp(command,commandStringSystemReinit)==0){
       commandSystemReinit(params);
   //confirm that a data log was received
-  }else if(strcmp(commandString,commandStringDataLogReceived)==0){
+  }else if(strcmp(command,commandStringDataLogReceived)==0){
       commandDataLogReceived(params);
   //configure a zone
-  }else if(strcmp(commandString,commandStringConfigZone)==0){
+  #if !defined(SENSORONLY)
+  }else if(strcmp(command,commandStringConfigZone)==0){
       commandConfigZone(params);
   //override a zone on
-  }else if(strcmp(commandString,commandStringConfigZoneReset)==0){
+  }else if(strcmp(command,commandStringConfigZoneReset)==0){
       commandConfigZoneReset(params);
-  //override a zone on
-  //}else if(strcmp(commandString,commandStringSystemHeartbeat)){
-  //    commandTestZones(params);
-  }else if(strcmp(commandString,commandStringConfigSensor)==0){
-      commandConfigSensor(params);
-  }else if(strcmp(commandString,commandStringConfigSensorReset)==0){
-      commandConfigSensorReset(params);
-  }else if(strcmp(commandString,commandStringConfigSchedule)==0){
+  }else if(strcmp(command,commandStringConfigSchedule)==0){
       commandConfigSchedule(params);
-  }else if(strcmp(commandString,commandStringConfigScheduleReset)==0){
+  }else if(strcmp(command,commandStringConfigScheduleReset)==0){
       commandConfigScheduleReset(params);
-  }else if(strcmp(commandString,commandStringHelp)==0){
-      commandHelp();
+  #endif
+  }else if(strcmp(command,commandStringConfigSensor)==0){
+      commandConfigSensor(params);
+  }else if(strcmp(command,commandStringConfigSensorReset)==0){
+      commandConfigSensorReset(params);
   }else{
     isUnrecognized = true;
   }
@@ -189,15 +214,19 @@ void executeCommand(String command, String params){
     
   }else if(isUnrecognized==true){
   
-    stringUnrecognizedCommand.print(Serial);
-    Serial.println(commandString);
+    #if defined(USESERIALMONITOR)
+      stringUnrecognizedCommand.print(Serial);
+      Serial.println(command);
+    #endif
     
   }else{
     
-    stringExecuting.print(Serial);
-    Serial.print(command);
-    stringWith.print(Serial);
-    Serial.println(params);
+    #if defined(USESERIALMONITOR)
+      stringExecuting.print(Serial);
+      Serial.print(command);
+      stringWith.print(Serial);
+      Serial.println(params);
+    #endif
     
   }
 
@@ -207,71 +236,65 @@ void executeCommand(String command, String params){
 
 }
 
-void(* restart) (void) = 0; //declare reset function @ address 0
-
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringRestarting,"Restarting system. ");
+#endif
 
-void commandSystemRestart(String params){
-  stringRestarting.print(Serial);
-  Serial.println();
+void commandSystemRestart(char* params){
+  #if defined(USESERIALMONITOR)
+    stringRestarting.print(Serial);
+    Serial.println();
+  #endif
   restart();
 }
 
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringReinit,"Reinitializing controller.");
+#endif
 
-void commandSystemReinit(String params){
-  stringReinit.print(Serial);
-  Serial.println();
+void commandSystemReinit(char* params){
+  #if defined(USESERIALMONITOR)
+    stringReinit.print(Serial);
+    Serial.println();
+  #endif
   initController();
 }
 
 
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringHeartbeatOnline,"[HEARTBEAT] [ONLINE]");
+#endif
 
-void commandSystemHeartbeat(int value){
+void commandSystemHeartbeat(char* value){
   
-      //#if defined(DEBUGHEARTBEAT)
-      if(heartBeatOnline==false){
-        stringHeartbeatOnline.print(Serial);
-        Serial.println();
-      }
-      //#endif
+    if(heartBeatInProgress==false){
+      #if defined(DEBUGHEARTBEAT)
+        Serial.println("ignored out of sync heartbeat");
+      #endif
+      return;
+    }
+  
+    #if defined(DEBUGHEARTBEAT)
+    if(heartBeatOnline==false){
+      stringHeartbeatOnline.print(Serial);
+      Serial.println();
+    }
+    #endif
   
     //indicate that the time has been synced and set the datetime
-    heartBeatInProgress = false;
     heartBeatLast = millis();
     heartBeatOnline = true;
+    heartBeatInProgress = false;
     
 }
 
-
-void commandHelp(){
-  
-    /*Serial.println();
-    Serial.println("Commands Available:");
-    Serial.println("    config:reset-default   - reset EEPROM");
-    Serial.println("    config:save            - save the running config to EEPROM");
-    Serial.println("    config:sensor          - configure a sensor");
-    Serial.println("    config:schedule        - configure a schedule");
-    Serial.println("    config:set-time        - sync device time");
-    Serial.println("    config:zone            - configure a zone");
-    Serial.println("    data:log-received      - indicate that a data log was received");
-    Serial.println("    system:heartbeat       - indicate that a heartbeat was received");
-    Serial.println("    system:restart         - reboot the system");
-    Serial.println("    test:zones             - runs a cycle that turns zones on and off");
-    Serial.println();*/
-   
-}
-
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringServerLogReceived,"Server received log: ");
+#endif
 
-void commandDataLogReceived(String logId){
-  stringServerLogReceived.print(Serial);
-  Serial.println(logId);
-}
-
-
-
-void commandTestZones(String params){
-  
+void commandDataLogReceived(char* logId){
+  #if defined(USESERIALMONITOR)
+    stringServerLogReceived.print(Serial);
+    Serial.println(logId);
+  #endif
 }

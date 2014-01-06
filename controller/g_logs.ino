@@ -2,90 +2,106 @@
 LOG functions
 ************************************/
 
+#if defined(USESERIALMONITOR)
 FLASH_STRING(stringLogSchedule,"[LOG] [SCHEDULE] ");
 FLASH_STRING(stringLogSensor,"[LOG] [SENSOR] ");
 FLASH_STRING(stringLogZone,"[LOG] [ZONE] ");
 FLASH_STRING(stringLogDelimitter,", ");
 FLASH_STRING(stringLogWrite,", write=");
-
-
-void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, String logSubject, String logMessage){
-
-  String thisLog = "";
-  thisLog += "schedule";
-  thisLog += ",";
-  thisLog += logTime;
-  thisLog += ",";
-  thisLog += loggingSchedule.name;
-  thisLog += ",";
-  thisLog += loggingSchedule.isRunning;
-  thisLog += ",";
-  thisLog += logSubject;
-  thisLog += ",";
-  thisLog += logMessage;
-  
-  #if defined DEBUG  
-    stringLogZone.print(Serial);
-    Serial.println(thisLog);
-  #endif
-  
-  sendCommand("data:log?"+thisLog+">");
-  
-}
-
+#endif
 
 void addSensorLog(struct Sensor &loggingSensor, unsigned long logTime, String logSubject, String logMessage){
 
   String thisLog = "";
-  thisLog += "sensor";
-  thisLog += ",";
+  thisLog += "d:log?";
+  thisLog += "type=sensor";
+  thisLog += "&time=";
   thisLog += logTime;
-  thisLog += ",";
+  thisLog += "&name=";
   thisLog += loggingSensor.name;
-  thisLog += ",";
+  thisLog += "&value=";
   thisLog += loggingSensor.statusValue;
-  thisLog += ",";
+  thisLog += "&value2=";
   thisLog += loggingSensor.statusValue2;
-  thisLog += ",";
+  thisLog += "&subject=";
   thisLog += logSubject;
-  thisLog += ",";
+  thisLog += "&message=";
   thisLog += logMessage;
   
-  #if defined DEBUG  
+  #if defined(USESERIALMONITOR) 
     stringLogSensor.print(Serial);
     Serial.println(thisLog);
   #endif
   
-  sendCommand("data:log?"+thisLog+">");
+  char buffer[maxBufferSize];
+  thisLog.toCharArray(buffer,maxBufferSize);
+  
+  sendCommand(buffer);
+    
+}
+
+#if !defined(SENSORONLY)
+  
+void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, String logSubject, String logMessage){
+
+  String thisLog = "";
+  thisLog += "d:log?";
+  thisLog += "type=schedule";
+  thisLog += "&time=";
+  thisLog += logTime;
+  thisLog += "&name=";
+  thisLog += loggingSchedule.name;
+  thisLog += "&isRunning=";
+  thisLog += loggingSchedule.isRunning;
+  thisLog += "&subject=";
+  thisLog += logSubject;
+  thisLog += "&message=";
+  thisLog += logMessage;
+  
+  #if defined(USESERIALMONITOR) 
+    stringLogZone.print(Serial);
+    Serial.println(thisLog);
+  #endif
+  
+  char buffer[maxBufferSize];
+  thisLog.toCharArray(buffer,maxBufferSize);
+  
+  sendCommand(buffer);
   
 }
 
 void addZoneLog(struct Zone &loggingZone, unsigned long logTime, String logSubject, String logMessage){
 
   String thisLog = "";
-  thisLog += "zone";
-  thisLog += ",";
+  thisLog += "d:log?";
+  thisLog += "type=zone";
+  thisLog += "&time=";
   thisLog += logTime;
-  thisLog += ",";
+  thisLog += "&name=";
   thisLog += loggingZone.name;
-  thisLog += ",";
+  thisLog += "&isRunning=";
   thisLog += loggingZone.isRunning;
-  thisLog += ",";
+  thisLog += "&started=";
   thisLog += loggingZone.statusRunStarted;
-  thisLog += ",";
+  thisLog += "&runBySchedule=";
   thisLog += loggingZone.statusRunBySchedule;
-  thisLog += ",";
+  thisLog += "&subject=";
   thisLog += logSubject;
-  thisLog += ",";
+  thisLog += "&message=";
   thisLog += logMessage;
   
-  #if defined DEBUG  
+  #if defined(USESERIALMONITOR) 
     stringLogZone.print(Serial);
     Serial.println(thisLog);
   #endif
   
-  sendCommand("data:log?"+thisLog+">");
- 
+  char buffer[maxBufferSize];
+  thisLog.toCharArray(buffer,maxBufferSize);
+  
+  sendCommand(buffer);
+  
 }
+
+#endif
 
 
