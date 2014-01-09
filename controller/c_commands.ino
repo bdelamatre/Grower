@@ -74,8 +74,8 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
 
 void processBuffer(char* commandBuffer){
   
-   Serial.print("process=");
-   Serial.println(commandBuffer);
+   //Serial.print("process=");
+   //Serial.println(commandBuffer);
      
     char * thisCommand = strtok_r(commandBuffer,"<",&commandBuffer);
     while (commandBuffer != NULL)
@@ -119,6 +119,9 @@ void sendCommand(char* thisCommand){
       Serial.println(thisCommand);
     #endif
   }
+    
+  Serial.print("sending=");
+  Serial.println(thisCommand);  
     
   #if defined(USESERIALCOM)
   #if defined(USESOFTWARESERIAL)  
