@@ -39,6 +39,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #define CLIONMONITOR
 #define DEBUG
 //#define DEBUGSENSORS
+//#define DEBUGSCHEDULE
 //#define DEBUGCONFIG
 //#define DEBUGMEM
 //#define DEBUGHEARTBEAT
@@ -48,7 +49,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
-#define CONFIG_VERSION "1v1"
+#define CONFIG_VERSION "1v4"
 #define CONFIG_START 512
 
 const char commandStringSystemHeartbeat[]     = "s:hb";
@@ -133,10 +134,10 @@ struct Schedule{
   int zones[maxZones]; //zone id, 0 to maxZones specified
   int zonesRunType; //0=series, 1=parallel
   int sensors[maxSensors]; //zone id, 0 to maxSensors specified
-  boolean timerStartWeekdays[7]; //1-7
-  boolean timerStartHours[24]; //1-24
-  boolean timerStartMinutes[60];//1-60
-  boolean timerStartSeconds[60];//1-60
+  char timerStartWeekdays[7]; //1-7
+  char timerStartHours[24]; //1-24
+  char timerStartMinutes[60];//1-60
+  char timerStartSeconds[60];//1-60
   int valueMin; //will turn zones on when this value is reached by the specified sensors
   int valueMax; //will turn zones off when this value is reached by the specified sensors
   int isRunning; //0=no,1=yes
@@ -329,7 +330,7 @@ void loop(){
     checkSensors(timeLocal);
       
     //check schedules
-    //checkSchedules(timeLocal);
+    checkSchedules(timeLocal);
   
     //display settings
     //pushDisplay();

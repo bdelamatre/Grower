@@ -120,8 +120,8 @@ void sendCommand(char* thisCommand){
     #endif
   }
     
-  Serial.print("sending=");
-  Serial.println(thisCommand);  
+  //Serial.print("sending=");
+  //Serial.println(thisCommand);  
     
   #if defined(USESERIALCOM)
   #if defined(USESOFTWARESERIAL)  

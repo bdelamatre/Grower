@@ -520,23 +520,26 @@ void commandConfigSchedule(char* params){
            
       }else if(strcmp(name,fieldTimerStartWeekdays)==0){
         //cycle through weekdays
-        for(int i=0;i<7;i++){
-           configStore.schedules[scheduleId].timerStartWeekdays[i] = (int)value[i];
-        }
+        strncpy(configStore.schedules[scheduleId].timerStartWeekdays,value,7);
+        /*for(int i=0;i<7;i++){
+           configStore.schedules[scheduleId].timerStartWeekdays[i] = int(value[i]);
+        }*/
       }else if(strcmp(name,fieldTimerStartHours)==0){
         //cycle through hours
-        for(int i=0;i<24;i++){
-           configStore.schedules[scheduleId].timerStartHours[i] = (int)value[i];
-        }
+        strncpy(configStore.schedules[scheduleId].timerStartHours,value,24);
+        /*for(int i=0;i<24;i++){
+           configStore.schedules[scheduleId].timerStartHours[i] = int(value[i]);
+        }*/
       }else if(strcmp(name,fieldTimerStartMinutes)==0){
         //cycle through minutes
-        for(int i=0;i<60;i++){
-           configStore.schedules[scheduleId].timerStartMinutes[i] = (int)value[i];
-        }
+        strncpy(configStore.schedules[scheduleId].timerStartMinutes,value,60);
+        /*for(int i=0;i<60;i++){
+           configStore.schedules[scheduleId].timerStartMinutes[i] = int(value[i]);
+        }*/
       }else if(strcmp(name,fieldTimerStartSeconds)==0){
         //cycle through seconds
         for(int i=0;i<60;i++){
-           configStore.schedules[scheduleId].timerStartSeconds[i] = (int)value[i];
+           configStore.schedules[scheduleId].timerStartSeconds[i] = int(value[i]);
         }
       }else if(strcmp(name,fieldValueMin)==0){
         configStore.schedules[scheduleId].valueMin = atoi(value);

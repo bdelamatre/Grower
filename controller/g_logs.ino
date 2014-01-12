@@ -59,7 +59,7 @@ void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, Str
   thisLog += logMessage;
   
   #if defined(USESERIALMONITOR) 
-    stringLogZone.print(Serial);
+    stringLogSchedule.print(Serial);
     Serial.println(thisLog);
   #endif
   
