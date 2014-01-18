@@ -2,122 +2,87 @@
   Initialization Functions
 ********************************************/
 
+void initEthernet(){
 
-#if defined(DEBUG) && defined(USESERIALMONITOR)  
-  FLASH_STRING(stringOk,"OK");
-  FLASH_STRING(stringSpaces,"  ");
-  FLASH_STRING(stringBannerItemSpace,"||    ");
-  FLASH_STRING(stringBannerSubitemSpace,"||    ");
-    
-  FLASH_STRING(stringInitSd,"|| SD ...");
-  FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
-  FLASH_STRING(stringInitSdCardInfo,"card information:");  
-#endif
+  Serial.print("|| Ethernet...");
+  boolean ethernetStarted = false;
+  if(configStore.dhcp==true){
+    Serial.print("DHCP...");
+    if(Ethernet.begin(mac)!=0){
+      //success
+      ethernetStarted = true;
+      Serial.print(Ethernet.localIP());
+    }else{
+      Serial.print("FAIL");
+    }
+  }else{
+    Serial.print("Manual...");
+    Ethernet.begin(mac,ip);
+    ethernetStarted = true;
+    Serial.print(Ethernet.localIP());
+  }
   
-  
-#if defined(USESD)
+  Serial.println();
+  Serial.print("|| Web Server...");
+  if(ethernetStarted==true){
+    server.begin();
+    Serial.print("OK");
+  }else{
+    Serial.print("FAIL (no ethernet)");
+  }
+  Serial.println();
+
+}
+
 void initSd(){
   
   //initialize SD
   #if defined(DEBUG) && defined(USESERIALMONITOR)  
-      stringInitSd.print(Serial);
+      Serial.print("|| SD ...");
   #endif
   
    pinMode(hardwareSelect, OUTPUT);
-  //pinMode(10, OUTPUT);
-
-  if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    #if defined(DEBUG) && defined(USESERIALMONITOR)        
-      stringInitSdFail.print(Serial);
-      Serial.println();
-    #endif
-  } else {
-    #if defined(DEBUG) && defined(USESERIALMONITOR)
-      stringOk.print(Serial);
-      stringInitSdCardInfo.print(Serial);
-      Serial.print("||  type=");
-      switch(card.type()) {
-        case SD_CARD_TYPE_SD1:
-          Serial.println("SD1");
-          break;
-        case SD_CARD_TYPE_SD2:
-          Serial.println("SD2");
-          break;
-        case SD_CARD_TYPE_SDHC:
-          Serial.println("SDHC");
-          break;
-        default:
-          Serial.println("Unknown");
-      }
-      Serial.print("||  volume=");
-    #endif
-    if (!volume.init(card)) {
-    }else{
-      // print the type and size of the first FAT-type volume
-      root.openRoot(volume);
-      #if defined(DEBUG) && defined(USESERIALMONITOR)  
-        uint32_t volumesize;
-        Serial.print("FAT ");
-        Serial.println(volume.fatType(), DEC);
-        volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
-        volumesize *= volume.clusterCount();       // we'll have a lot of clusters
-        volumesize *= 512;                            // SD card blocks are always 512 bytes
-        volumesize /= 1024;
-        volumesize /= 1024;
-        Serial.print("||  size(MB) = ");
-        Serial.println(volumesize);
-        Serial.println("||  Files: ");
-        // list all files in the card with date and size
-        root.ls(LS_R | LS_DATE | LS_SIZE);
-      #endif
-      
-      SD.begin(chipSelect);
-    }
-    
-  }
+  
+   if(SD.begin(chipSelect)){
+     Serial.println("OK");
+   }else{
+     Serial.println("FAIL");
+   }
   
 }
-#endif
-
-#if defined(DEBUG) && defined(USESERIALMONITOR) 
-FLASH_STRING(stringInitRtc,"|| RTC...");
-FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
-FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
-#endif
 
 void initRtc(){
 
   //initialize clock
-  #if defined(DEBUG) && defined(USESERIALMONITOR)  
-    stringInitRtc.print(Serial);
+  #if defined(DEBUG) && defined(USESERIALMONITOR)
+    Serial.print("|| RTC...");
   #endif
   
-  Wire.begin();
+  //Wire.begin();
   //RTC.begin();
     
   //if not available, nothing to do
-  /*if(!RTC.isrunning()){
-    #if defined(DEBUG)
-      stringNotAvailable.print(Serial);
-      Serial.println();
-    #endif
-  }else{*/
+  //if(!RTC.isrunning()){
+  //  #if defined(DEBUG)
+  //    Serial.println("NOT AVAILABLE");
+  //  #endif
+  //}else{
     
     //RTC is available, lets go ahead and indicate that the time is synced
     //timeSynced = true;
-    //timeSyncedDateTime =  getLocalTime();
+    timeSyncedDateTime =  getLocalTime();
     
       #if defined(SETTIME)
           #if defined(DEBUG) && defined(USESERIALMONITOR)  
-            stringManuallySettingTime.print(Serial);
+            Serial.print("Manually setting to compile time...");
           #endif
           // following line sets the RTC to the date & time this sketch was compiled
           //RTC.adjust(DateTime(__DATE__, __TIME__));
       #endif
     
     #if defined(DEBUG) && defined(USESERIALMONITOR)  
-      stringOk.print(Serial);
-      Serial.print("(");  
+      Serial.print("OK");
+      Serial.print("(");
       printDateTimeToSerial(timeSyncedDateTime);
       Serial.print(")");
       Serial.println();
@@ -126,18 +91,13 @@ void initRtc(){
    
 }
 
-#if defined(DEBUG) && defined(USESERIALMONITOR)  
-FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");
-#endif
-
 //fix-me: better place for this?
 DateTime getLocalTime(){
   
     //if time hasn't been synced yet, than there is nothing to do.
     if(timeSynced==false){
       #if defined(DEBUG)
-        stringErrorSync.print(Serial);
-        Serial.println();
+        Serial.println("error: time hasn't been synced yet");
       #endif
     }else{
     
@@ -145,11 +105,11 @@ DateTime getLocalTime(){
       //if(!RTC.isrunning()){
         
           int secondsSinceSync = (millis()/1000) - timeAtSync;
-                    
+          
           //resync every 5 minutes
-          if(timeSyncInProgress==false && secondsSinceSync>(5)){
+          if(timeSyncInProgress==false && secondsSinceSync>(60*5)){
             //and initiate sync again
-            sendCommand("c:time>");
+            //sendCommand("c:time>");
           }
           
           //get the last synced time
@@ -169,25 +129,18 @@ DateTime getLocalTime(){
 void initController(){
  
   initSensors();
-  #if !defined(SENSORONLY)
   initZones();
   initSchedules();
-  #endif
 
 }
 
-#if defined(DEBUG) && defined(USESERIALMONITOR)  
-FLASH_STRING(stringInitSensors,"|| Initializing sensors:");
-#endif
-
 void initSensors(){
   #if defined(DEBUG)
-    stringInitSensors.print(Serial);
-    Serial.println();
+    Serial.println("|| Initializing sensors:");
   #endif
   for(int i=0;i<maxSensors;i++){
     #if defined(DEBUG)
-      stringBannerSubitemSpace.print(Serial);
+      Serial.print("||    ");
       Serial.print(i);
       Serial.print(" - ");
     #endif
@@ -197,7 +150,6 @@ void initSensors(){
 
 void initSensor(struct Sensor &thisSensor){
  
-  
   if(thisSensor.type==0){
     //zone off
     #if defined(DEBUG)
@@ -254,20 +206,13 @@ void initSensor(struct Sensor &thisSensor){
 
 }
 
-#if !defined(SENSORONLY)
-
-#if defined(DEBUG) && defined(USESERIALMONITOR)  
-FLASH_STRING(stringInitZones,"|| Initializing zones:");
-#endif
-
 void initZones(){
   #if defined(DEBUG) && defined(USESERIALMONITOR)  
-    stringInitZones.print(Serial);
-    Serial.println();
+    Serial.println("|| Initializing zones:");
   #endif
   for(int i=0;i<maxZones;i++){
     #if defined(DEBUG) && defined(USESERIALMONITOR)  
-      stringBannerSubitemSpace.print(Serial);
+      Serial.print("||    ");
       Serial.print(i);
       Serial.print(" - ");
     #endif
@@ -297,18 +242,13 @@ void initZone(struct Zone &thisZone){
   
 }
 
-#if defined(DEBUG) && defined(USESERIALMONITOR)  
-FLASH_STRING(stringInitSchedules,"|| Initializing schedules:");
-#endif
-
 void initSchedules(){
   #if defined(DEBUG)
-    stringInitSchedules.print(Serial);
-    Serial.println();
+    Serial.println("|| Initializing schedules:");
   #endif
   for(int i=0;i<maxSchedules;i++){
     #if defined(DEBUG)
-      stringBannerSubitemSpace.print(Serial);
+      Serial.print("||    ");
       Serial.print(i);
       Serial.print(" - ");
     #endif
@@ -371,5 +311,4 @@ void initSchedule (struct Schedule &thisSchedule){
   #endif
   
 }
-#endif
 
