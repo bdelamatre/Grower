@@ -28,22 +28,26 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <Flash.h>
 #include <DHT.h> //DHT by AdaFruit
 #include <SoftwareSerial.h> //DHT by AdaFruit
+#include <SPI.h>
+#include <Ethernet.h>
+#include <utility/w5100.h>
 
 //#define SENSORONLY
 
+#define USEETHERNETCOM
 #define USESERIALMONITOR
-#define USESERIALCOM
+//#define USESERIALCOM
 //#define USESOFTWARESERIAL
-//#define USESD
+#define USESD
 
-#define CLIONMONITOR
+//#define CLIONMONITOR
 #define DEBUG
-//#define DEBUGSENSORS
-//#define DEBUGSCHEDULE
+#define DEBUGSENSORS
+#define DEBUGSCHEDULE
 //#define DEBUGCONFIG
 //#define DEBUGMEM
-//#define DEBUGHEARTBEAT
-//#define DEBUGTIMESYNC
+#define DEBUGHEARTBEAT
+#define DEBUGTIMESYNC
 //#define SETTIME
 //#define MANUALCONFIG
 
@@ -87,15 +91,16 @@ used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 functions will not work.
 */
 #if defined(USESD)
-const int chipSelect = 4;
-const int hardwareSelect = 14; //Goldilocks
-//const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
-Sd2Card card;
-SdVolume volume;
-SdFile root;
+  const int chipSelect = 4;
+  const int hardwareSelect = 14; //Goldilocks
+  //const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
+  Sd2Card card;
+  SdVolume volume;
+  SdFile root;
 #endif
 
 //RTC variable
+unsigned long timeSyncSent;
 boolean timeSyncInProgress = false;
 boolean timeSynced = false;
 int timeAtSync;
@@ -104,9 +109,17 @@ DateTime timeSyncedDateTime;
 //the command buffer
 const int maxBufferSize = 512;
 
-int commandBufferPosition = 0;
-boolean commandBufferReadyToProcess = false;
-char commandBuffer[maxBufferSize];
+#if defined(USEETHERNETCOM)
+  int commandBufferPositionEthernet = 0;
+  boolean commandBufferReadyToProcessEthernet = false;
+  char commandBufferEthernet[maxBufferSize];
+#endif
+
+#if defined(USESERIALCOM)
+  int commandBufferPositionSerial = 0;
+  boolean commandBufferReadyToProcessSerial = false;
+  char commandBufferSerial[maxBufferSize];
+#endif
 
 #if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
   int commandBufferPositionMonitor = 0;
@@ -179,26 +192,40 @@ This is the main structure that contains the complete configuration for the syst
 **/
 struct ConfigStore{
   char version[4];
-  char configId[11];
   unsigned long utcOffset;
-  #if !defined(SENSORONLY)
+  char configId[11];
+  char deviceId[33];
+  char apiKey[13];
+  char server[255];
+  unsigned int serverPort;
+  byte mac[6];
+  boolean dhcp;
+  IPAddress address;
   Schedule schedules[maxSchedules];
   Zone zones[maxZones];
-  #endif
   Sensor sensors[maxSensors];
 } configStore={
   CONFIG_VERSION,
-  0,
   -6,
+  "0",
+  "test",
+  "0",
+  "192.168.2.2",
+  8080,
+  {0x00,0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
+  true,
 };
 
 void(* restart) (void) = 0; //declare reset function @ address 0\
+
+//EthernetServer server(80);
+EthernetClient client;
 
 // the setup routine runs once when you press reset:
 void setup() {
   
   //watchdog, 8 seconds
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
   
   //if debug serial, we will output debug statements to serial
   #if defined(USESERIALMONITOR)
@@ -219,12 +246,13 @@ void setup() {
   #endif
   
   loadConfig();
+  initEthernet();
   #if defined(USESD)
-    initSd();
+    initSd();  
   #endif
-  initRtc();
+  initRtc();  
   initController();
-    
+  
   #if defined(DEBUG) 
     printBreak();
     printAvailableMemory();  
@@ -236,30 +264,52 @@ void setup() {
 
 //  loop - runs over and over again forever:
 void loop(){
+              
+  #if defined(USEETHERNETCOM)
       
-  #if defined(USESERIALCOM)
-    #if defined(USESOFTWARESERIAL)  
-      readSerialToBuffer(softSerial,commandBuffer,commandBufferPosition,commandBufferReadyToProcess);
-    #else
-      readSerialToBuffer(Serial1,commandBuffer,commandBufferPosition,commandBufferReadyToProcess);
-    #endif
+      readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);
+      
+      //process the command buffer
+      if(commandBufferReadyToProcessEthernet==true){
+        //go ahead and reset the watchdog if the buffer is ready to process
+        wdt_reset();
+        //process commands in the buffer
+        processBuffer(commandBufferEthernet);
+        //fix-me: this shouldn't be necessary because of strtok
+        //reset the memory of the buffer
+        memset(commandBufferEthernet,0,maxBufferSize);
+        //reset the buffer position
+        commandBufferPositionEthernet = 0;
+        //do not process the buffer again
+        commandBufferReadyToProcessEthernet = false;
+      }
+      
   #endif
   
-  //process the command buffer
-  if(commandBufferReadyToProcess==true){
-    //go ahead and reset the watchdog if the buffer is ready to process
-    wdt_reset();
-    //process commands in the buffer
-    processBuffer(commandBuffer);
-    //fix-me: this shouldn't be necessary because of strtok
-    //reset the memory of the buffer
-    memset(commandBuffer,0,maxBufferSize);
-    //reset the buffer position
-    commandBufferPosition = 0;
-    //do not process the buffer again
-    commandBufferReadyToProcess = false;
-  }
-
+  #if defined(USESERIALCOM)
+    #if defined(USESOFTWARESERIAL)  
+      readSerialToBuffer(softSerial,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
+    #else
+      readSerialToBuffer(Serial1,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
+    #endif
+    
+      //process the command buffer
+      if(commandBufferReadyToProcessSerial==true){
+        //go ahead and reset the watchdog if the buffer is ready to process
+        wdt_reset();
+        //process commands in the buffer
+        processBuffer(commandBufferSerial);
+        //fix-me: this shouldn't be necessary because of strtok
+        //reset the memory of the buffer
+        memset(commandBufferSerial,0,maxBufferSize);
+        //reset the buffer position
+        commandBufferPositionSerial = 0;
+        //do not process the buffer again
+        commandBufferReadyToProcessSerial = false;
+      }
+    
+  #endif
+  
   #if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
     //if we are using serial monitor, give it it's own command buffer
     readSerialToBuffer(Serial,commandBufferMonitor,commandBufferPositionMonitor,commandBufferReadyToProcessMonitor);
@@ -306,9 +356,11 @@ void loop(){
               
     heartBeatOnline = false;
   }
-  
+    
   //we can't do anything else until the time is synced
-  if(timeSynced==false && timeSyncInProgress==false){
+  if((timeSynced==false && timeSyncInProgress==false)
+      || timeSynced==false && (millis()-timeSyncSent)>5
+      ){
       sendCommand("c:time");
   }
   
@@ -336,5 +388,7 @@ void loop(){
     //pushDisplay();
     
   }
+  
+  //serveHttp();
   
 }

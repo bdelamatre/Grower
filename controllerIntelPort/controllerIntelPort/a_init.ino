@@ -6,7 +6,7 @@ void initEthernet(){
 
   Serial.print("|| Ethernet...");
   boolean ethernetStarted = false;
-  if(configStore.dhcp==true){
+  if(configStore.dhcp==1){
     Serial.print("DHCP...");
     if(Ethernet.begin(mac)!=0){
       //success

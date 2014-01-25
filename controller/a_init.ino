@@ -3,6 +3,42 @@
 ********************************************/
 
 
+void initEthernet(){
+
+  Serial.print("|| Ethernet...");
+    
+  boolean ethernetStarted = false;
+  if(configStore.dhcp==false){
+    Serial.print("Manual...");
+    Ethernet.begin(configStore.mac,configStore.address);
+    ethernetStarted = true;
+    Serial.print(Ethernet.localIP());
+  }else{
+    Serial.print("DHCP...");
+    if(Ethernet.begin(configStore.mac)!=0){
+      ethernetStarted = true;
+      Serial.print(Ethernet.localIP());
+    }else{
+      Serial.print("FAIL");
+    }
+  }
+  
+  Serial.println();
+  Serial.print("|| Web Server...");
+  if(ethernetStarted==true){
+    
+    W5100.setRetransmissionTime(0x07D0);
+    W5100.setRetransmissionCount(4);
+    
+    //server.begin();
+    Serial.print("OK");
+  }else{
+    Serial.print("FAIL (no ethernet)");
+  }
+  Serial.println();
+
+}
+
 #if defined(DEBUG) && defined(USESERIALMONITOR)  
   FLASH_STRING(stringOk,"OK");
   FLASH_STRING(stringSpaces,"  ");
@@ -13,7 +49,6 @@
   FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
   FLASH_STRING(stringInitSdCardInfo,"card information:");  
 #endif
-  
   
 #if defined(USESD)
 void initSd(){
@@ -135,7 +170,7 @@ DateTime getLocalTime(){
   
     //if time hasn't been synced yet, than there is nothing to do.
     if(timeSynced==false){
-      #if defined(DEBUG)
+      #if defined(DEBUG) && defined(USESERIALMONITOR)  
         stringErrorSync.print(Serial);
         Serial.println();
       #endif

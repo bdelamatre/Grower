@@ -21,6 +21,12 @@ const char fieldValueMin[] = "min";
 const char fieldValueMax[] = "max";
 
 
+String getDeviceId(){
+
+  return configStore.deviceId;
+
+}
+
 void getIdsFromValue(int resultArray[],int arrayLength, String value,char delimitter=',',boolean shiftValues=false){
   
     int thisPosition;
@@ -78,6 +84,12 @@ void loadConfig() {
       Serial.print(" ID=");
       Serial.println(configStore.configId);
     #endif
+  }else{
+    
+    #if defined DEBUG
+      Serial.println(" DEFAULT");
+    #endif
+  
   }
   
 }

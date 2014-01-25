@@ -183,7 +183,7 @@ struct ConfigStore{
   char version[4];
   char configId[11];
   unsigned long utcOffset;
-  boolean dhcp;
+  int dhcp;
   byte mac[6];
   IPAddress host[4];
   IPAddress dns[4];
@@ -195,7 +195,7 @@ struct ConfigStore{
   CONFIG_VERSION,
   0,
   -6,
-  true
+  1,
 };
 
 // that you want to connect to (port 80 is default for HTTP):

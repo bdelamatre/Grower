@@ -8,7 +8,78 @@ FLASH_STRING(stringWith," ,paramater= ");
 FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 #endif
   
-void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+
+void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+  
+  //if(!client){
+  //  return;
+  //}
+  
+  if((bufferPosition-2)>=maxBufferSize){
+    #if defined(USESERIALMONITOR)
+      Serial.println("buffer overflowing");
+    #endif
+    //memset(commandBuffer,0,maxBufferSize);
+    //fix-me: we need to do something better here
+    restart();
+    return;
+  }
+      
+  boolean currentLineIsBlank = true;    
+  boolean foundHeader = false;
+  boolean foundBody = false;
+
+  while(client && client.connected()){
+    
+    if(client.available()){
+  
+        char c = client.read();
+        
+        if(c == '\n' && currentLineIsBlank==true){
+          
+          if(foundHeader==false){
+            foundHeader=true;
+          }else if(foundBody==false){
+            foundBody=true;
+            client.stop();
+            return;
+          }else{
+            client.stop();
+            return;
+          }
+          
+        }
+        
+        if(foundHeader==true && c != '\n'){
+                  
+          //done building command
+          if (c == '^') {
+            readyToProcess = true;
+            client.stop();
+            return;
+          }else{
+            //Serial.print(c);
+            commandBuffer[bufferPosition] = c;
+            bufferPosition++;
+          }
+          
+        }
+        
+        if (c == '\n') {
+          currentLineIsBlank = true;
+        }else if (c != '\r') {
+          // you've gotten a character on the current line
+          currentLineIsBlank = false;
+        }
+        
+      }
+   
+    }
+  
+} 
+  
+  
+/*void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
   if((bufferPosition-2)>=maxBufferSize){
     #if defined(USESERIALMONITOR)
@@ -36,7 +107,7 @@ void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &buffer
     }
   }  
   
-}  
+}*/  
 
 void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
@@ -98,7 +169,9 @@ void sendCommand(char* thisCommand){
   //these commands need special processing
   if(strstr(thisCommand,commandStringConfigSetTime)!=0){
     
+    timeSyncSent = millis();
     timeSyncInProgress = true;
+    
     #if defined(DEBUGTIMESYNC)
       stringSendingCommand.print(Serial);
       Serial.println(thisCommand);
@@ -132,6 +205,39 @@ void sendCommand(char* thisCommand){
     Serial1.write(">");
   #endif
   #endif
+  
+  #if defined(USEETHERNETCOM)
+    //wdt_reset();
+    Serial.print("connecting...");
+    if (client.connect(configStore.server, configStore.serverPort)) {
+      
+      Serial.println("connected");
+
+      // Make a HTTP request:
+      client.println("POST /service HTTP/1.1");
+      client.print("Host: ");
+      client.println(configStore.server);
+      client.println("Connection: close");
+      client.println("Content-Type: application/x-www-form-urlencoded");
+      client.print("Content-Length: ");
+      client.println(3+strlen(configStore.deviceId)+9+strlen(thisCommand));
+      client.println();
+      client.print("id=");
+      client.print(configStore.deviceId);
+      client.print("&command=");
+      for(int i=0;i<strlen(thisCommand);i++){
+        if(thisCommand[i]=='&'){
+          client.print("%26");
+        }else{
+          client.print(thisCommand[i]);
+        }
+      }
+
+    }else{
+      client.stop();
+      Serial.println("failed to connect");
+    }
+  #endif
  
   #if defined(DEBUG)
     printAvailableMemory();
@@ -139,6 +245,25 @@ void sendCommand(char* thisCommand){
   
 }
 
+char specials[] = "&"; ///* String containing chars you want encoded */
+
+static char hex_digit(char c)
+{  return "01234567890ABCDEF"[c & 0x0F];
+}
+
+char* urlencode(char* dst,char* src)
+{  char *d = dst;
+   char c;
+   while (c = *src++)
+   {  if (strchr(specials,c))
+      {  *d++ = '%';
+         *d++ = hex_digit(c >> 4);
+         *d++ = hex_digit(c);
+      }
+      else *d++ = c;
+   }
+   return dst;
+}
 
 /**
 Generic handler for executing commands received from the Electric Imp
@@ -269,7 +394,7 @@ FLASH_STRING(stringHeartbeatOnline,"[HEARTBEAT] [ONLINE]");
 #endif
 
 void commandSystemHeartbeat(char* value){
-  
+    
     if(heartBeatInProgress==false){
       #if defined(DEBUGHEARTBEAT)
         Serial.println("ignored out of sync heartbeat");
