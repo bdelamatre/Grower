@@ -6,14 +6,14 @@ Check Schedules
 
 #if !defined(SENSORONLY)
 
-void checkSchedules(DateTime checkTime){
+void checkSchedules(time_t checkTime){
 
   for(int i=0;i<maxSchedules;i++){
     checkSchedule(configStore.schedules[i],checkTime);
   }
 }
 
-void checkSchedule(struct Schedule &checkingSchedule,DateTime checkTime){
+void checkSchedule(struct Schedule &checkingSchedule,time_t checkTime){
 
   if(checkingSchedule.type==0){
     return;
@@ -38,42 +38,50 @@ void checkSchedule(struct Schedule &checkingSchedule,DateTime checkTime){
 
 }
 
-void checkScheduleTimer(struct Schedule &checkingSchedule,DateTime checkTime){
+void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
 
   int run = 0;
   
-  int weekday = checkTime.dayOfWeek();
-  int hour = checkTime.hour();
-  int minute = checkTime.minute();
+  time_t adjustedTime = checkTime;
+  adjustedTime =  adjustedTime + (configStore.utcOffset*60*60);
+   
+  int thisWeekday = weekday(adjustedTime);
+  int thisHour = hour(adjustedTime);
+  int thisMinute = minute(adjustedTime);
  
-  /*Serial.println();
+  Serial.println();
+  Serial.print("unix before=");
+  Serial.println(checkTime);
+  Serial.print("unix after");
+  Serial.println(adjustedTime);
+  Serial.println();
   Serial.print("trying to match:");
   Serial.print(" d=");
-  Serial.print(weekday);
+  Serial.print(thisWeekday);
   Serial.print(" h=");
-  Serial.print(hour);
+  Serial.print(thisHour);
   Serial.print(" m=");
-  Serial.print(minute);
+  Serial.print(thisMinute);
   Serial.println();
   Serial.print(" day match ");
-  Serial.print(checkingSchedule.timerStartWeekdays[weekday]);
-  Serial.print("=");*/
+  Serial.print(checkingSchedule.timerStartWeekdays[thisWeekday]);
+  Serial.print("=");
   
   //check if to turn on
-  if(checkingSchedule.timerStartWeekdays[weekday]==49){
-   // Serial.print(weekday);
-    //Serial.print(", hour match=");
+  if(checkingSchedule.timerStartWeekdays[thisWeekday]==49){
+    Serial.print(thisWeekday);
+    Serial.print(", hour match=");
     //day matches
-    if(checkingSchedule.timerStartHours[hour]==49){
-      //Serial.print(hour);
-      //Serial.print(", minute match=");
+    if(checkingSchedule.timerStartHours[thisHour]==49){
+       Serial.print(thisHour);
+      Serial.print(", minute match=");
       //hour matches
-      if(checkingSchedule.timerStartMinutes[minute]==49){
+      if(checkingSchedule.timerStartMinutes[thisMinute]==49){
         //minute matches
         //turn schedule on
         run = 1;
-        //Serial.print(minute);
-        //Serial.print(" success!");
+        Serial.print(thisMinute);
+        Serial.print(" success!");
 
       }
 
@@ -91,20 +99,20 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,DateTime checkTime){
     //checkingSchedule.statusLastRunMinute = minute;
     turnScheduleZonesOn(checkingSchedule,checkTime);
     //if(wasRunning==0){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"starting","timer");
+      addScheduleLog(checkingSchedule,checkTime,"starting","timer");
     //}
   }else{
     checkingSchedule.isRunning = 0;
     //checkingSchedule.statusRunStarted = 0;
     turnScheduleZonesOff(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"ending","timer");
+      addScheduleLog(checkingSchedule,checkTime,"ending","timer");
     //}
   }
 
 }
 
-int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, DateTime checkTime){
+int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, time_t checkTime){
 
   
   int soilMoisture = 0;
@@ -135,27 +143,27 @@ int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, DateTime checkT
     checkingSchedule.isRunning = 0;
     turnScheduleZonesOff(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"off","moisture low");
+      addScheduleLog(checkingSchedule,checkTime,"off","moisture low");
     //}
   }else if(soilMoisture <= checkingSchedule.valueMin){
     //moisture above target, turn on
     checkingSchedule.isRunning = 1;
     turnScheduleZonesOn(checkingSchedule,checkTime);
     //if(wasRunning==0){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"on","moisture high");
+      addScheduleLog(checkingSchedule,checkTime,"on","moisture high");
     //}
   }else{
     //not sure, so turn off
     checkingSchedule.isRunning = 0;
     turnScheduleZonesOff(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"off","unknown");
+      addScheduleLog(checkingSchedule,checkTime,"off","unknown");
     //}
   }
   
 }
 
-int checkScheduleTemperature(struct Schedule &checkingSchedule, DateTime checkTime){
+int checkScheduleTemperature(struct Schedule &checkingSchedule, time_t checkTime){
   
   float temperature = 0;
   
@@ -180,21 +188,21 @@ int checkScheduleTemperature(struct Schedule &checkingSchedule, DateTime checkTi
     checkingSchedule.isRunning = 0;
     turnScheduleZonesOff(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"off","temp low");
+      addScheduleLog(checkingSchedule,checkTime,"off","temp low");
     //}
   }else if(temperature <= checkingSchedule.valueMin){
     //temp above target, turn on
     checkingSchedule.isRunning = 1;
     turnScheduleZonesOn(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"off","temp low");
+      addScheduleLog(checkingSchedule,checkTime,"off","temp low");
     //}
   }else{
     //not sure, so turn off
     checkingSchedule.isRunning = 0;
     turnScheduleZonesOff(checkingSchedule,checkTime);
     //if(wasRunning==1){
-      addScheduleLog(checkingSchedule,checkTime.unixtime(),"off","temp low");
+      addScheduleLog(checkingSchedule,checkTime,"off","temp low");
     //}
   }
   

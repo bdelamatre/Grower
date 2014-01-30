@@ -24,7 +24,8 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <EEPROM.h>
 #include <SD.h>
 #include <Wire.h> 
-#include <Chronodot.h> //Chronodot by Stephanie-Maks
+#include <Time.h> 
+#include <DS1307RTC.h>
 #include <Flash.h>
 #include <DHT.h> //DHT by AdaFruit
 #include <SoftwareSerial.h> //DHT by AdaFruit
@@ -32,24 +33,26 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #include <Ethernet.h>
 #include <utility/w5100.h>
 
-//#define SENSORONLY
-
 #define USEETHERNETCOM
 #define USESERIALMONITOR
 //#define USESERIALCOM
 //#define USESOFTWARESERIAL
 #define USESD
+#define USERTCDS1307
+
+#define DS1307_ADDRESS 0x68
 
 //#define CLIONMONITOR
 #define DEBUG
-#define DEBUGSENSORS
+#define DEBUGETHERNET
+//#define DEBUGSENSORS
 #define DEBUGSCHEDULE
 //#define DEBUGCONFIG
 //#define DEBUGMEM
-#define DEBUGHEARTBEAT
-#define DEBUGTIMESYNC
+//#define DEBUGHEARTBEAT
+//#define DEBUGTIMESYNC
 //#define SETTIME
-//#define MANUALCONFIG
+//#define MANUALCONFIGf
 
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
@@ -100,14 +103,15 @@ functions will not work.
 #endif
 
 //RTC variable
+const unsigned int timeSyncDelay = 60000;
 unsigned long timeSyncSent;
 boolean timeSyncInProgress = false;
 boolean timeSynced = false;
-int timeAtSync;
-DateTime timeSyncedDateTime;
+unsigned long timeAtSync;
+time_t timeSyncedDateTime;
 
 //the command buffer
-const int maxBufferSize = 512;
+const int maxBufferSize = 1024;
 
 #if defined(USEETHERNETCOM)
   int commandBufferPositionEthernet = 0;
@@ -224,8 +228,8 @@ EthernetClient client;
 // the setup routine runs once when you press reset:
 void setup() {
   
-  //watchdog, 8 seconds
-  //wdt_enable(WDTO_8S);
+  //start wire
+  Wire.begin();
   
   //if debug serial, we will output debug statements to serial
   #if defined(USESERIALMONITOR)
@@ -260,31 +264,16 @@ void setup() {
   
   printCommandLineAvailable();
   
+  //watchdog, 8 seconds
+  wdt_enable(WDTO_8S);
 }
 
 //  loop - runs over and over again forever:
 void loop(){
               
-  #if defined(USEETHERNETCOM)
-      
-      readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);
-      
-      //process the command buffer
-      if(commandBufferReadyToProcessEthernet==true){
-        //go ahead and reset the watchdog if the buffer is ready to process
-        wdt_reset();
-        //process commands in the buffer
-        processBuffer(commandBufferEthernet);
-        //fix-me: this shouldn't be necessary because of strtok
-        //reset the memory of the buffer
-        memset(commandBufferEthernet,0,maxBufferSize);
-        //reset the buffer position
-        commandBufferPositionEthernet = 0;
-        //do not process the buffer again
-        commandBufferReadyToProcessEthernet = false;
-      }
-      
-  #endif
+  /*#if defined(USEETHERNETCOM)
+      readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);   
+  #endif*/
   
   #if defined(USESERIALCOM)
     #if defined(USESOFTWARESERIAL)  
@@ -293,35 +282,11 @@ void loop(){
       readSerialToBuffer(Serial1,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
     #endif
     
-      //process the command buffer
-      if(commandBufferReadyToProcessSerial==true){
-        //go ahead and reset the watchdog if the buffer is ready to process
-        wdt_reset();
-        //process commands in the buffer
-        processBuffer(commandBufferSerial);
-        //fix-me: this shouldn't be necessary because of strtok
-        //reset the memory of the buffer
-        memset(commandBufferSerial,0,maxBufferSize);
-        //reset the buffer position
-        commandBufferPositionSerial = 0;
-        //do not process the buffer again
-        commandBufferReadyToProcessSerial = false;
-      }
-    
   #endif
   
   #if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
     //if we are using serial monitor, give it it's own command buffer
     readSerialToBuffer(Serial,commandBufferMonitor,commandBufferPositionMonitor,commandBufferReadyToProcessMonitor);
-    
-    //same as above, but with other buffer
-    if(commandBufferReadyToProcessMonitor==true){
-      wdt_reset();
-      processBuffer(commandBufferMonitor);
-      memset(commandBufferMonitor,0,maxBufferSize);
-      commandBufferPositionMonitor = 0;
-      commandBufferReadyToProcessMonitor = false;
-    }
   #endif
   
   //if we are in configuration mode, prevent running the reset of the script
@@ -358,9 +323,7 @@ void loop(){
   }
     
   //we can't do anything else until the time is synced
-  if((timeSynced==false && timeSyncInProgress==false)
-      || timeSynced==false && (millis()-timeSyncSent)>5
-      ){
+  if((timeSynced==false && timeSyncInProgress==false) || timeSynced==false && (millis()-timeSyncSent)>timeSyncDelay){
       sendCommand("c:time");
   }
   
@@ -369,7 +332,7 @@ void loop(){
     sensorCheckLast = millis();
     
     //time has been synced and we can continue with controller functions
-    DateTime timeLocal = getLocalTime();
+    time_t timeLocal = getLocalTime();
     
     //Serial.println(timeLocal.unixtime());
     //Serial.println("check sensors");

@@ -80,7 +80,7 @@ void loadConfig() {
     #if defined DEBUG
     Serial.print(configSize);
     Serial.print(" bytes...");
-      Serial.println("OK");
+      Serial.print("OK");
       Serial.print(" ID=");
       Serial.println(configStore.configId);
     #endif
@@ -177,10 +177,12 @@ FLASH_STRING(stringAdjustingRTC,"Adjusting RTC to ");
 FLASH_STRING(stringTimeSynced,"Time synced to ");
 #endif
 
-DateTime commandConfigSetTime(unsigned long int timeunix){
+time_t commandConfigSetTime(unsigned long int timeunix){
     
     //build DateTime object from unix timestamp
-    DateTime thisDateTime = DateTime(timeunix);
+    //DateTime thisDateTime = DateTime(timeunix);
+    setTime(timeunix);
+    time_t thisDateTime = now();
   
     //indicate that the time has been synced and set the datetime
     timeSyncInProgress = false;
@@ -189,12 +191,12 @@ DateTime commandConfigSetTime(unsigned long int timeunix){
     timeSyncedDateTime = thisDateTime;
   
     //if the RTC is running, lets go ahead and adjust the clock
-    /*if (RTC.isrunning()) {
+    if (RTC.chipPresent()) {
       stringAdjustingRTC.print(Serial);
       printDateTimeToSerial(thisDateTime);
       Serial.println();
-      RTC.adjust(thisDateTime); 
-    }*/
+      RTC.set(thisDateTime); 
+    }
     
     #if defined(USESERIALMONITOR)  
       stringTimeSynced.print(Serial);

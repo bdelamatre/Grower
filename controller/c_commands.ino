@@ -11,10 +11,6 @@ FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 
 void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
-  //if(!client){
-  //  return;
-  //}
-  
   if((bufferPosition-2)>=maxBufferSize){
     #if defined(USESERIALMONITOR)
       Serial.println("buffer overflowing");
@@ -35,6 +31,10 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   
         char c = client.read();
         
+        #if defined(DEBUGETHERNET)
+          Serial.print(c);
+        #endif
+        
         if(c == '\n' && currentLineIsBlank==true){
           
           if(foundHeader==false){
@@ -42,10 +42,10 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
           }else if(foundBody==false){
             foundBody=true;
             client.stop();
-            return;
+            break;
           }else{
             client.stop();
-            return;
+            break;
           }
           
         }
@@ -56,7 +56,7 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
           if (c == '^') {
             readyToProcess = true;
             client.stop();
-            return;
+            break;
           }else{
             //Serial.print(c);
             commandBuffer[bufferPosition] = c;
@@ -75,6 +75,21 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
       }
    
     }
+  
+  //process the command buffer
+  if(readyToProcess==true){
+    //go ahead and reset the watchdog if the buffer is ready to process
+    wdt_reset();
+    //process commands in the buffer
+    processBuffer(commandBuffer);
+    //fix-me: this shouldn't be necessary because of strtok
+    //reset the memory of the buffer
+    memset(commandBuffer,0,maxBufferSize);
+    //reset the buffer position
+    bufferPosition = 0;
+    //do not process the buffer again
+    readyToProcess = false;
+  }
   
 } 
   
@@ -130,12 +145,28 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
     //done building command
     if (inChar == '^') {
       readyToProcess = true;
-      return;
+      break;
     }else{
       commandBuffer[bufferPosition] = inChar;
       bufferPosition++;
     }
   }  
+  
+    //process the command buffer
+  if(readyToProcess==true){
+    //go ahead and reset the watchdog if the buffer is ready to process
+    wdt_reset();
+    //process commands in the buffer
+    processBuffer(commandBuffer);
+    //fix-me: this shouldn't be necessary because of strtok
+    //reset the memory of the buffer
+    memset(commandBuffer,0,maxBufferSize);
+    //reset the buffer position
+    bufferPosition = 0;
+    //do not process the buffer again
+    readyToProcess = false;
+  }
+  
   
 }
   
@@ -207,11 +238,16 @@ void sendCommand(char* thisCommand){
   #endif
   
   #if defined(USEETHERNETCOM)
-    //wdt_reset();
-    Serial.print("connecting...");
+    
+    #if defined(DEBUGETHERNET)
+      Serial.print("connecting...");
+    #endif
+    
     if (client.connect(configStore.server, configStore.serverPort)) {
       
-      Serial.println("connected");
+      #if defined(DEBUGETHERNET)
+        Serial.println("connected");
+      #endif
 
       // Make a HTTP request:
       client.println("POST /service HTTP/1.1");
@@ -232,10 +268,16 @@ void sendCommand(char* thisCommand){
           client.print(thisCommand[i]);
         }
       }
+      
+      delay(10);
+      
+      readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);
 
     }else{
       client.stop();
-      Serial.println("failed to connect");
+      #if defined(DEBUGETHERNET)
+        Serial.println("failed to connect");
+      #endif
     }
   #endif
  

@@ -4,13 +4,13 @@ Sensors
 
 ***/
 
-void checkSensors(DateTime checkTime){
+void checkSensors(time_t checkTime){
   for(int i=0;i<maxSensors;i++){
     checkSensor(configStore.sensors[i],checkTime);
   }
 }
 
-void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
+void checkSensor(struct Sensor &checkingSensor, time_t checkTime){
 
   boolean logMe = false;
   
@@ -25,16 +25,16 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
       #endif 
       
       if(checkingSensor.frequencyCheckSeconds>0 && checkingSensor.statusLastChecked>0){
-        DateTime nextTime = DateTime(checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds);
+        time_t nextTime = checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds;
         
         #if defined(DEBUGSENSORS)
           Serial.print(", next time in ");
           Serial.print(checkingSensor.frequencyCheckSeconds);
           Serial.print(" at a ");
-          Serial.print(nextTime.unixtime());
+          Serial.print(nextTime);
         #endif
         
-        if(checkTime.unixtime() < nextTime.unixtime() && checkingSensor.statusLastChecked > 0){
+        if(checkTime < nextTime && checkingSensor.statusLastChecked > 0){
           
           #if defined(DEBUGSENSORS)
             Serial.println();
@@ -48,13 +48,13 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
         Serial.println();
       #endif
       
-      checkingSensor.statusLastChecked = checkTime.unixtime();
+      checkingSensor.statusLastChecked = checkTime;
       
       if(checkingSensor.frequencyLogSeconds>0){
-        DateTime nextTime = DateTime(checkingSensor.statusLastLogged+checkingSensor.frequencyLogSeconds);
-        if(checkTime.unixtime() >= nextTime.unixtime() || checkingSensor.statusLastLogged < 1){
+        time_t nextTime = checkingSensor.statusLastLogged + checkingSensor.frequencyLogSeconds;
+        if(checkTime >= nextTime || checkingSensor.statusLastLogged < 1){
           logMe = true;
-          checkingSensor.statusLastLogged = checkTime.unixtime();
+          checkingSensor.statusLastLogged = checkTime;
         }
       }
       
@@ -87,7 +87,7 @@ void checkSensor(struct Sensor &checkingSensor, DateTime checkTime){
 
 }
 
-int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
+int checkSensorSoilMoisture(struct Sensor &checkingSensor,time_t checkTime, boolean logMe){
           
   //smooth over .25s  
   int smoothed = 0;
@@ -99,20 +99,20 @@ int checkSensorSoilMoisture(struct Sensor &checkingSensor,DateTime checkTime, bo
   checkingSensor.statusValue = smoothed / 50;
     
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
+      addSensorLog(checkingSensor,checkTime,"","");
   }
 }
 
-int checkSensorSoilTemperature(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
+int checkSensorSoilTemperature(struct Sensor &checkingSensor,time_t checkTime, boolean logMe){
     
   //fix-me: add support
   
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
+      addSensorLog(checkingSensor,checkTime,"","");
   }
 }
 
-int checkSensorAirTemperature(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
+int checkSensorAirTemperature(struct Sensor &checkingSensor,time_t checkTime, boolean logMe){
     
   DHT dht(checkingSensor.pin, DHT22);
  
@@ -132,14 +132,14 @@ int checkSensorAirTemperature(struct Sensor &checkingSensor,DateTime checkTime, 
   }
   
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
+      addSensorLog(checkingSensor,checkTime,"","");
   }
 }
 
-int checkSensorLight(struct Sensor &checkingSensor,DateTime checkTime, boolean logMe){
+int checkSensorLight(struct Sensor &checkingSensor,time_t checkTime, boolean logMe){
     
   if(logMe==true){
-      addSensorLog(checkingSensor,checkTime.unixtime(),"","");
+      addSensorLog(checkingSensor,checkTime,"","");
   }
 }
 

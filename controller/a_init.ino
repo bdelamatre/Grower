@@ -127,7 +127,24 @@ void initRtc(){
     stringInitRtc.print(Serial);
   #endif
   
-  Wire.begin();
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+  
+  if (timeStatus() != timeSet){ 
+     Serial.print("UNAVAILABLE");
+  }else{
+     Serial.print("FOUND");
+     timeSyncedDateTime = now();
+  }
+  
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
+    stringOk.print(Serial);
+    Serial.print("(");  
+    printDateTimeToSerial(timeSyncedDateTime);
+    Serial.print(")");
+    Serial.println();
+  #endif
+ 
+  //Wire.begin();
   //RTC.begin();
     
   //if not available, nothing to do
@@ -142,21 +159,15 @@ void initRtc(){
     //timeSynced = true;
     //timeSyncedDateTime =  getLocalTime();
     
-      #if defined(SETTIME)
+      /*#if defined(SETTIME)
           #if defined(DEBUG) && defined(USESERIALMONITOR)  
             stringManuallySettingTime.print(Serial);
           #endif
           // following line sets the RTC to the date & time this sketch was compiled
           //RTC.adjust(DateTime(__DATE__, __TIME__));
-      #endif
+      #endif*/
     
-    #if defined(DEBUG) && defined(USESERIALMONITOR)  
-      stringOk.print(Serial);
-      Serial.print("(");  
-      printDateTimeToSerial(timeSyncedDateTime);
-      Serial.print(")");
-      Serial.println();
-    #endif
+    
   //}
    
 }
@@ -166,7 +177,7 @@ FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");
 #endif
 
 //fix-me: better place for this?
-DateTime getLocalTime(){
+time_t getLocalTime(){
   
     //if time hasn't been synced yet, than there is nothing to do.
     if(timeSynced==false){
@@ -182,13 +193,13 @@ DateTime getLocalTime(){
           int secondsSinceSync = (millis()/1000) - timeAtSync;
                     
           //resync every 5 minutes
-          if(timeSyncInProgress==false && secondsSinceSync>(5)){
+          if(timeSyncInProgress==false && secondsSinceSync>(timeSyncDelay/1000)){
             //and initiate sync again
             sendCommand("c:time>");
           }
           
           //get the last synced time
-          return DateTime(timeSyncedDateTime.unixtime()+secondsSinceSync);
+          return timeSyncedDateTime+secondsSinceSync;
           
       //or get the synced time directly from the RTC
       //}else{

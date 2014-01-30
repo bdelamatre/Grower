@@ -6,7 +6,7 @@ Zones
 
 #if !defined(SENSORONLY)
 
-void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
+void turnScheduleZonesOn(struct Schedule &thisSchedule, time_t onTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>-1){
       //fix-me: turned off switching to 
@@ -19,7 +19,7 @@ void turnScheduleZonesOn(struct Schedule &thisSchedule, DateTime onTime){
   }
 }
 
-void turnScheduleZonesOff(struct Schedule &thisSchedule, DateTime offTime){
+void turnScheduleZonesOff(struct Schedule &thisSchedule, time_t offTime){
   for(int i=0;i<maxZones;i++){
     if(thisSchedule.zones[i]>-1){
       //if(configStore.zones[(thisSchedule.zones[i])].isRunning==1){
@@ -31,7 +31,7 @@ void turnScheduleZonesOff(struct Schedule &thisSchedule, DateTime offTime){
   }
 }
 
-void turnZoneOn(struct Zone &thisZone, DateTime onTime,int logMe){
+void turnZoneOn(struct Zone &thisZone, time_t onTime,int logMe){
   
   /*if(thisZone.statusSafetyOff==1){
     addErrorLog(onTime,"could not turn on zone because it was turned off as a safety percaution","");
@@ -39,24 +39,24 @@ void turnZoneOn(struct Zone &thisZone, DateTime onTime,int logMe){
   }*/
   
   thisZone.isRunning = 1;
-  thisZone.statusRunStarted = onTime.unixtime();
+  thisZone.statusRunStarted = onTime;
 
   digitalWrite(thisZone.pin,HIGH);
   
   if(logMe==1){
-    addZoneLog(thisZone,onTime.unixtime(),"on","");
+    addZoneLog(thisZone,onTime,"on","");
   }
   
 }
 
-void turnZoneOff(struct Zone &thisZone, DateTime offTime, int logMe){
+void turnZoneOff(struct Zone &thisZone, time_t offTime, int logMe){
   
   digitalWrite(thisZone.pin,LOW);
   thisZone.isRunning = 0;
   thisZone.statusRunStarted = 0;
   
   if(logMe==1){
-    addZoneLog(thisZone,offTime.unixtime(),"off","");
+    addZoneLog(thisZone,offTime,"off","");
   }
 }
 #endif

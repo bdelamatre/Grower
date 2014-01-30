@@ -5,7 +5,27 @@ FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
 FLASH_STRING(bannerBreak,"==========================================");
 #endif
 
-void printDateTimeToSerial(DateTime now){
+void printDateTimeToSerial(time_t t){
+    Serial.print(year(t), DEC);
+    Serial.print('/');
+    if(month(t) < 10) Serial.print("0");
+    Serial.print(month(t), DEC);
+    Serial.print('/');
+    if(day(t) < 10) Serial.print("0");
+    Serial.print(day(t), DEC);
+    Serial.print(' ');
+    if(hour(t) < 10) Serial.print("0");
+    Serial.print(hour(t), DEC);
+    Serial.print(':');
+    if(minute(t) < 10) Serial.print("0");
+    Serial.print(minute(t), DEC);
+    Serial.print(':');
+    if(second(t) < 10) Serial.print("0");
+    Serial.print(second(t), DEC);
+
+}
+
+/*void printDateTimeToSerial(DateTime now){
     Serial.print(now.year(), DEC);
     Serial.print('/');
     if(now.month() < 10) Serial.print("0");
@@ -23,7 +43,7 @@ void printDateTimeToSerial(DateTime now){
     if(now.second() < 10) Serial.print("0");
     Serial.print(now.second(), DEC);
 
-}
+}*/
 
 void printCommandLineAvailable(){
 
