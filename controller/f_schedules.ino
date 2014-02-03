@@ -4,8 +4,6 @@ Check Schedules
 
 ***/
 
-#if !defined(SENSORONLY)
-
 void checkSchedules(time_t checkTime){
 
   for(int i=0;i<maxSchedules;i++){
@@ -208,6 +206,5 @@ int checkScheduleTemperature(struct Schedule &checkingSchedule, time_t checkTime
   
 }
 
-#endif
 
 

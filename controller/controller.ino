@@ -22,33 +22,33 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 **/
 #include <avr/wdt.h>
 #include <EEPROM.h>
-#include <SD.h>
+//#include <SD.h>
 #include <Wire.h> 
 #include <Time.h> 
 #include <DS1307RTC.h>
 #include <Flash.h>
 #include <DHT.h> //DHT by AdaFruit
-#include <SoftwareSerial.h> //DHT by AdaFruit
+//#include <SoftwareSerial.h> //DHT by AdaFruit
 #include <SPI.h>
 #include <Ethernet.h>
-#include <utility/w5100.h>
+//#include <utility/w5100.h>
 
-#define USEETHERNETCOM
 #define USESERIALMONITOR
+//#define CLIONMONITOR
+#define USEETHERNETCOM
 //#define USESERIALCOM
 //#define USESOFTWARESERIAL
-#define USESD
+//#define USESD
 #define USERTCDS1307
 
 #define DS1307_ADDRESS 0x68
 
-//#define CLIONMONITOR
 #define DEBUG
 #define DEBUGETHERNET
 //#define DEBUGSENSORS
-#define DEBUGSCHEDULE
+//#define DEBUGSCHEDULE
 //#define DEBUGCONFIG
-//#define DEBUGMEM
+#define DEBUGMEM
 //#define DEBUGHEARTBEAT
 //#define DEBUGTIMESYNC
 //#define SETTIME
@@ -56,8 +56,8 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
-#define CONFIG_VERSION "1v4"
-#define CONFIG_START 512
+#define CONFIG_VERSION "1v2"
+#define CONFIG_START 0
 
 const char commandStringSystemHeartbeat[]     = "s:hb";
 const char commandStringSystemRestart[]       = "s:restart";
@@ -140,10 +140,9 @@ system limits, or stability issue will occur.
 const int maxSchedules = 6; 
 const int maxZones = 6; 
 const int maxSensors = 6;
-const int maxNameLength = 16;
-const int maxParamNameLength = 16;
+const int maxNameLength = 7;
+const int maxParamNameLength = 11;
 
-#if !defined(SENSORONLY)
 //schedule structure, managed by config structure
 struct Schedule{
   char name[maxNameLength];
@@ -174,7 +173,6 @@ struct Zone{
   int statusRunBySchedule;
   int statusSafetyOff;
 };
-#endif
 
 //sensor structure, managed by config structure
 struct Sensor{
@@ -200,11 +198,13 @@ struct ConfigStore{
   char configId[11];
   char deviceId[33];
   char apiKey[13];
-  char server[255];
-  unsigned int serverPort;
-  byte mac[6];
-  boolean dhcp;
-  IPAddress address;
+  #if defined(USEETHERNETCOM)
+    char server[255];
+    unsigned int serverPort;
+    byte mac[6];
+    boolean dhcp;
+    IPAddress address;
+  #endif
   Schedule schedules[maxSchedules];
   Zone zones[maxZones];
   Sensor sensors[maxSensors];
@@ -214,16 +214,20 @@ struct ConfigStore{
   "0",
   "test",
   "0",
-  "192.168.2.2",
+  #if defined(USEETHERNETCOM)
+  "192.168.2.100",
   8080,
-  {0x00,0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
+  {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
   true,
+  #endif
 };
 
 void(* restart) (void) = 0; //declare reset function @ address 0\
 
 //EthernetServer server(80);
-EthernetClient client;
+  #if defined(USEETHERNETCOM)  
+    EthernetClient client;
+  #endif
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -244,36 +248,44 @@ void setup() {
     #endif
   #endif
   
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
     printAvailableMemory();
     printBanner();
   #endif
   
   loadConfig();
-  initEthernet();
+  #if defined(USEETHERNETCOM)  
+    initEthernet();
+  #endif
   #if defined(USESD)
     initSd();  
   #endif
   initRtc();  
   initController();
   
-  #if defined(DEBUG) 
+  #if defined(DEBUG) && defined(USESERIALMONITOR) 
     printBreak();
     printAvailableMemory();  
   #endif
   
-  printCommandLineAvailable();
+  #if defined(USESERIALMONITOR)
+    printCommandLineAvailable();
+  #endif
   
   //watchdog, 8 seconds
   wdt_enable(WDTO_8S);
+
+
 }
 
 //  loop - runs over and over again forever:
 void loop(){
-              
-  /*#if defined(USEETHERNETCOM)
+  
+  wdt_reset();
+      
+  #if defined(USEETHERNETCOM)
       readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);   
-  #endif*/
+  #endif
   
   #if defined(USESERIALCOM)
     #if defined(USESOFTWARESERIAL)  
@@ -281,7 +293,6 @@ void loop(){
     #else
       readSerialToBuffer(Serial1,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
     #endif
-    
   #endif
   
   #if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
@@ -297,6 +308,7 @@ void loop(){
   
   //if no commands are being received and we are in config mode for 8 seconds, reset
   wdt_reset();
+  
   
   //heartbeat determines if the controller is online or offline
   //if the timer has timed out and it is time to send the next heartbeat

@@ -39,8 +39,6 @@ void addSensorLog(struct Sensor &loggingSensor, unsigned long logTime, String lo
   sendCommand(buffer);
     
 }
-
-#if !defined(SENSORONLY)
   
 void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, String logSubject, String logMessage){
 
@@ -101,7 +99,4 @@ void addZoneLog(struct Zone &loggingZone, unsigned long logTime, String logSubje
   sendCommand(buffer);
   
 }
-
-#endif
-
 

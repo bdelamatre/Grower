@@ -9,6 +9,7 @@ FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 #endif
   
 
+#if defined(USEETHERNETCOM)  
 void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
   if((bufferPosition-2)>=maxBufferSize){
@@ -92,6 +93,7 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   }
   
 } 
+#endif
   
   
 /*void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
@@ -281,7 +283,7 @@ void sendCommand(char* thisCommand){
     }
   #endif
  
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)
     printAvailableMemory();
   #endif
   
@@ -400,7 +402,7 @@ void executeCommand(char* command, char* params){
     
   }
 
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)
     printAvailableMemory();
   #endif
 
@@ -468,3 +470,4 @@ void commandDataLogReceived(char* logId){
     Serial.println(logId);
   #endif
 }
+

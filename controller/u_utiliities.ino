@@ -1,9 +1,9 @@
   
-#if defined(USESERIALMONITOR) 
+//#if defined(USESERIALMONITOR) 
+
 FLASH_STRING(memString,"[DEBUG] [MEMORY] ");
 FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
 FLASH_STRING(bannerBreak,"==========================================");
-#endif
 
 void printDateTimeToSerial(time_t t){
     Serial.print(year(t), DEC);
@@ -52,25 +52,21 @@ void printCommandLineAvailable(){
 }
 
 void printAvailableMemory(){
-    #if defined(DEBUGMEM)
       memString.print(Serial);
       Serial.println(memoryFree());
-    #endif
 }
   
 void printBanner(){
-  #if defined(USESERIALMONITOR) 
       printBreak();
       banner.print(Serial);Serial.println();
       printBreak();
-  #endif
 }
 
 void printBreak(){
-  #if defined(USESERIALMONITOR) 
     bannerBreak.print(Serial);Serial.println();
-  #endif
 }
+
+//#endif
 
 int availableMemory() 
 {
@@ -112,52 +108,6 @@ char* getIdFromParams(char* params){
   
 }
 
-
-/*unsigned long getIdFromParams(String params){
-  
-  String value = getParamByName(params,"id");
-  //Serial.print("id value is ");
-  //Serial.println(value);
-  unsigned long idValue = value.toInt();
-  
-  return idValue;
-  
-}*/
-
-/*String getParamByName(String params, String paramName){
-  
-  int commaPosition = 0;
-  String param;
-  
-  //loop through all the parameters
-  while(commaPosition >= 0){
-    
-      commaPosition = params.indexOf('&');
-
-      if(commaPosition != -1){
-          param = params.substring(0,commaPosition);
-          params = params.substring(commaPosition+1, params.length());
-      }else{ 
-         if(params.length() > 0)
-           param = params; 
-      }
-      
-      //get the paramater value
-      String value = param.substring(param.indexOf("=")+1);
-     
-      if(param.startsWith(paramName)){
-        return value;
-      }
-      
-      
-   }
-   
-   return "";
-  
-}*/
-
-
-
 char* getParamByName(char* originalParams, const char* paramName){
   
   //fix-me: put a defined buffer size here for stability
@@ -185,3 +135,4 @@ char* getParamByName(char* originalParams, const char* paramName){
   return "";
   
 }
+

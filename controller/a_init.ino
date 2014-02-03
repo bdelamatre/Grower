@@ -2,7 +2,14 @@
   Initialization Functions
 ********************************************/
 
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
+  FLASH_STRING(stringOk,"OK");
+  FLASH_STRING(stringSpaces,"  ");
+  FLASH_STRING(stringBannerItemSpace,"||    ");
+  FLASH_STRING(stringBannerSubitemSpace,"||    ");
+#endif
 
+#if defined(USEETHERNETCOM)  
 void initEthernet(){
 
   Serial.print("|| Ethernet...");
@@ -24,33 +31,31 @@ void initEthernet(){
   }
   
   Serial.println();
-  Serial.print("|| Web Server...");
+  //Serial.print("|| Web Server...");
   if(ethernetStarted==true){
     
-    W5100.setRetransmissionTime(0x07D0);
-    W5100.setRetransmissionCount(4);
+    //W5100.setRetransmissionTime(0x07D0);
+    //W5100.setRetransmissionCount(4);
     
     //server.begin();
-    Serial.print("OK");
+    //Serial.print("OK");
   }else{
-    Serial.print("FAIL (no ethernet)");
+    //Serial.print("FAIL (no ethernet)");
   }
-  Serial.println();
+  //Serial.println();
 
 }
+#endif
+    
+  
+#if defined(USESD)
 
 #if defined(DEBUG) && defined(USESERIALMONITOR)  
-  FLASH_STRING(stringOk,"OK");
-  FLASH_STRING(stringSpaces,"  ");
-  FLASH_STRING(stringBannerItemSpace,"||    ");
-  FLASH_STRING(stringBannerSubitemSpace,"||    ");
-    
   FLASH_STRING(stringInitSd,"|| SD ...");
   FLASH_STRING(stringInitSdFail,"FAIL (unable to init)");  
   FLASH_STRING(stringInitSdCardInfo,"card information:");  
 #endif
-  
-#if defined(USESD)
+
 void initSd(){
   
   //initialize SD
@@ -143,32 +148,6 @@ void initRtc(){
     Serial.print(")");
     Serial.println();
   #endif
- 
-  //Wire.begin();
-  //RTC.begin();
-    
-  //if not available, nothing to do
-  /*if(!RTC.isrunning()){
-    #if defined(DEBUG)
-      stringNotAvailable.print(Serial);
-      Serial.println();
-    #endif
-  }else{*/
-    
-    //RTC is available, lets go ahead and indicate that the time is synced
-    //timeSynced = true;
-    //timeSyncedDateTime =  getLocalTime();
-    
-      /*#if defined(SETTIME)
-          #if defined(DEBUG) && defined(USESERIALMONITOR)  
-            stringManuallySettingTime.print(Serial);
-          #endif
-          // following line sets the RTC to the date & time this sketch was compiled
-          //RTC.adjust(DateTime(__DATE__, __TIME__));
-      #endif*/
-    
-    
-  //}
    
 }
 
@@ -186,29 +165,19 @@ time_t getLocalTime(){
         Serial.println();
       #endif
     }else{
-    
-      //otherwise, if RTC isn't running use the synced time
-      //if(!RTC.isrunning()){
-        
-          int secondsSinceSync = (millis()/1000) - timeAtSync;
-                    
-          //resync every 5 minutes
-          if(timeSyncInProgress==false && secondsSinceSync>(timeSyncDelay/1000)){
-            //and initiate sync again
-            sendCommand("c:time>");
-          }
-          
-          //get the last synced time
-          return timeSyncedDateTime+secondsSinceSync;
-          
-      //or get the synced time directly from the RTC
-      //}else{
-        //return DateTime(RTC.now().unixtime() + (config.utcOffset*60*60));
-        //return DateTime(RTC.now().unixtime());
-      //}
-
-    }
+      int secondsSinceSync = (millis()/1000) - timeAtSync;
+                
+      //resync every 5 minutes
+      if(timeSyncInProgress==false && secondsSinceSync>(timeSyncDelay/1000)){
+        //and initiate sync again
+        sendCommand("c:time>");
+      }
+      
+      //get the last synced time
+      return timeSyncedDateTime+secondsSinceSync;
   
+    }
+    
 }
 
 
@@ -227,12 +196,12 @@ FLASH_STRING(stringInitSensors,"|| Initializing sensors:");
 #endif
 
 void initSensors(){
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)
     stringInitSensors.print(Serial);
     Serial.println();
   #endif
   for(int i=0;i<maxSensors;i++){
-    #if defined(DEBUG)
+    #if defined(DEBUG) && defined(USESERIALMONITOR)
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
       Serial.print(" - ");
@@ -348,12 +317,12 @@ FLASH_STRING(stringInitSchedules,"|| Initializing schedules:");
 #endif
 
 void initSchedules(){
-  #if defined(DEBUG)
+  #if defined(DEBUG) && defined(USESERIALMONITOR)
     stringInitSchedules.print(Serial);
     Serial.println();
   #endif
   for(int i=0;i<maxSchedules;i++){
-    #if defined(DEBUG)
+    #if defined(DEBUG) && defined(USESERIALMONITOR)
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
       Serial.print(" - ");
@@ -418,4 +387,5 @@ void initSchedule (struct Schedule &thisSchedule){
   
 }
 #endif
+
 

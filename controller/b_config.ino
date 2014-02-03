@@ -1,5 +1,5 @@
 
-const char blankName[maxNameLength] = "               "; 
+const char blankName[maxNameLength] = "     "; 
 
 const char fieldId[] = "id";
 const char fieldType[] = "type";
@@ -20,11 +20,8 @@ const char fieldTimerStartSeconds[] = "ts";
 const char fieldValueMin[] = "min";
 const char fieldValueMax[] = "max";
 
-
 String getDeviceId(){
-
   return configStore.deviceId;
-
 }
 
 void getIdsFromValue(int resultArray[],int arrayLength, String value,char delimitter=',',boolean shiftValues=false){
@@ -59,12 +56,20 @@ void getIdsFromValue(int resultArray[],int arrayLength, String value,char delimi
 
 }
 
-void loadConfig() {
 
+FLASH_STRING(stringConfig,"|| Config (");
+FLASH_STRING(stringDot,")...");
+FLASH_STRING(stringBytes,"bytes...");
+FLASH_STRING(stringOk2,"OK");
+FLASH_STRING(stringIdEquals," ID=");
+FLASH_STRING(stringDefault," DEFAULT");
+
+void loadConfig(){ 
+    
   #if defined DEBUG
-    Serial.print("|| Config (");
+    stringConfig.print(Serial);
     Serial.print(CONFIG_VERSION);
-    Serial.print(")...");
+    stringDot.print(Serial);
   #endif
   
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
@@ -78,16 +83,17 @@ void loadConfig() {
     }
     
     #if defined DEBUG
-    Serial.print(configSize);
-    Serial.print(" bytes...");
-      Serial.print("OK");
-      Serial.print(" ID=");
+      Serial.print(configSize);
+      stringBytes.print(Serial);
+      stringOk2.print(Serial);
+      stringIdEquals.print(Serial);
       Serial.println(configStore.configId);
     #endif
   }else{
     
     #if defined DEBUG
-      Serial.println(" DEFAULT");
+      stringDefault.print(Serial);
+      Serial.println();
     #endif
   
   }
@@ -192,9 +198,11 @@ time_t commandConfigSetTime(unsigned long int timeunix){
   
     //if the RTC is running, lets go ahead and adjust the clock
     if (RTC.chipPresent()) {
-      stringAdjustingRTC.print(Serial);
-      printDateTimeToSerial(thisDateTime);
-      Serial.println();
+      #if defined(USESERIALMONITOR)  
+        stringAdjustingRTC.print(Serial);
+        printDateTimeToSerial(thisDateTime);
+        Serial.println();
+      #endif
       RTC.set(thisDateTime); 
     }
     

@@ -143,3 +143,4 @@ int checkSensorLight(struct Sensor &checkingSensor,time_t checkTime, boolean log
   }
 }
 
+
