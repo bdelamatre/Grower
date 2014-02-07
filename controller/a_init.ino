@@ -34,8 +34,8 @@ void initEthernet(){
   //Serial.print("|| Web Server...");
   if(ethernetStarted==true){
     
-    //W5100.setRetransmissionTime(0x07D0);
-    //W5100.setRetransmissionCount(4);
+    W5100.setRetransmissionTime(0x07D0);
+    W5100.setRetransmissionCount(4);
     
     //server.begin();
     //Serial.print("OK");
@@ -156,7 +156,7 @@ FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");
 #endif
 
 //fix-me: better place for this?
-time_t getLocalTime(){
+time_t getCurrentTime(){
   
     //if time hasn't been synced yet, than there is nothing to do.
     if(timeSynced==false){
@@ -165,16 +165,19 @@ time_t getLocalTime(){
         Serial.println();
       #endif
     }else{
-      int secondsSinceSync = (millis()/1000) - timeAtSync;
+      
+      time_t currentTime = now();
+      
+      int secondsSinceSync = currentTime - timeSyncedDateTime;
                 
       //resync every 5 minutes
-      if(timeSyncInProgress==false && secondsSinceSync>(timeSyncDelay/1000)){
+      if(timeSyncInProgress==false && secondsSinceSync>timeSyncDelay){
         //and initiate sync again
-        sendCommand("c:time>");
+        sendCommand("c:time");
       }
       
       //get the last synced time
-      return timeSyncedDateTime+secondsSinceSync;
+      return currentTime;
   
     }
     

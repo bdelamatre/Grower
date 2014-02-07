@@ -192,7 +192,7 @@ time_t commandConfigSetTime(unsigned long int timeunix){
   
     //indicate that the time has been synced and set the datetime
     timeSyncInProgress = false;
-    timeAtSync = millis()/1000;
+    //timeAtSync = millis()/1000;
     timeSynced = true;
     timeSyncedDateTime = thisDateTime;
   

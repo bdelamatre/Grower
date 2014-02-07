@@ -47,7 +47,7 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
   int thisHour = hour(adjustedTime);
   int thisMinute = minute(adjustedTime);
  
-  Serial.println();
+  /*Serial.println();
   Serial.print("unix before=");
   Serial.println(checkTime);
   Serial.print("unix after");
@@ -63,23 +63,23 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
   Serial.println();
   Serial.print(" day match ");
   Serial.print(checkingSchedule.timerStartWeekdays[thisWeekday]);
-  Serial.print("=");
+  Serial.print("=");*/
   
   //check if to turn on
   if(checkingSchedule.timerStartWeekdays[thisWeekday]==49){
-    Serial.print(thisWeekday);
-    Serial.print(", hour match=");
+    //Serial.print(thisWeekday);
+    //Serial.print(", hour match=");
     //day matches
     if(checkingSchedule.timerStartHours[thisHour]==49){
-       Serial.print(thisHour);
-      Serial.print(", minute match=");
+      //Serial.print(thisHour);
+      //Serial.print(", minute match=");
       //hour matches
       if(checkingSchedule.timerStartMinutes[thisMinute]==49){
         //minute matches
         //turn schedule on
         run = 1;
-        Serial.print(thisMinute);
-        Serial.print(" success!");
+        //Serial.print(thisMinute);
+        //Serial.print(" success!");
 
       }
 

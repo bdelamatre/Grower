@@ -202,7 +202,7 @@ void sendCommand(char* thisCommand){
   //these commands need special processing
   if(strstr(thisCommand,commandStringConfigSetTime)!=0){
     
-    timeSyncSent = millis();
+    //timeSyncSent = millis();
     timeSyncInProgress = true;
     
     #if defined(DEBUGTIMESYNC)
@@ -211,7 +211,7 @@ void sendCommand(char* thisCommand){
     #endif
   }else if(strstr(thisCommand,commandStringSystemHeartbeat)!=0){
 
-    heartBeatSent = millis();
+    heartBeatSent = now();
     heartBeatInProgress = true;
       
     #if defined(DEBUGHEARTBEAT)
@@ -454,7 +454,7 @@ void commandSystemHeartbeat(char* value){
     #endif
   
     //indicate that the time has been synced and set the datetime
-    heartBeatLast = millis();
+    heartBeatLast = now();
     heartBeatOnline = true;
     heartBeatInProgress = false;
     

@@ -31,7 +31,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 //#include <SoftwareSerial.h> //DHT by AdaFruit
 #include <SPI.h>
 #include <Ethernet.h>
-//#include <utility/w5100.h>
+#include <utility/w5100.h>
 
 #define USESERIALMONITOR
 //#define CLIONMONITOR
@@ -44,7 +44,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #define DS1307_ADDRESS 0x68
 
 #define DEBUG
-#define DEBUGETHERNET
+//#define DEBUGETHERNET
 //#define DEBUGSENSORS
 //#define DEBUGSCHEDULE
 //#define DEBUGCONFIG
@@ -56,7 +56,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
-#define CONFIG_VERSION "1v2"
+#define CONFIG_VERSION "1v3"
 #define CONFIG_START 0
 
 const char commandStringSystemHeartbeat[]     = "s:hb";
@@ -76,15 +76,15 @@ const char commandStringDataLogReceived[]     = "d:received";
 
 boolean configInProgress = false;
 
-const int sensorCheckDelay = 5000;
+const int sensorCheckDelay = 5;
 unsigned long sensorCheckLast = 0;
 
-const int heartBeatDelay = 2000;
-const int heartBeatDelayWait = 28000;
+const int heartBeatDelay = 2;
+const int heartBeatDelayWait = 28;
 boolean heartBeatOnline = false;
 boolean heartBeatInProgress = false;
-unsigned long heartBeatSent = 0;
-unsigned long heartBeatLast = 0;
+time_t heartBeatSent;
+time_t heartBeatLast;
 
 /*
 SD variables
@@ -103,11 +103,9 @@ functions will not work.
 #endif
 
 //RTC variable
-const unsigned int timeSyncDelay = 60000;
-unsigned long timeSyncSent;
+const unsigned int timeSyncDelay = 60;
 boolean timeSyncInProgress = false;
 boolean timeSynced = false;
-unsigned long timeAtSync;
 time_t timeSyncedDateTime;
 
 //the command buffer
@@ -228,7 +226,6 @@ void(* restart) (void) = 0; //declare reset function @ address 0\
   #if defined(USEETHERNETCOM)  
     EthernetClient client;
   #endif
-
 // the setup routine runs once when you press reset:
 void setup() {
   
@@ -254,7 +251,7 @@ void setup() {
   #endif
   
   loadConfig();
-  #if defined(USEETHERNETCOM)  
+  #if defined(USEETHERNETCOM)
     initEthernet();
   #endif
   #if defined(USESD)
@@ -271,17 +268,14 @@ void setup() {
   #if defined(USESERIALMONITOR)
     printCommandLineAvailable();
   #endif
-  
+
   //watchdog, 8 seconds
   wdt_enable(WDTO_8S);
-
 
 }
 
 //  loop - runs over and over again forever:
 void loop(){
-  
-  wdt_reset();
       
   #if defined(USEETHERNETCOM)
       readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);   
@@ -303,16 +297,24 @@ void loop(){
   //if we are in configuration mode, prevent running the reset of the script
   //fix-me: we might be able to add something more elegant than relying on the watchdog timer
   if(configInProgress==true){
+     return;
+  }
+  
+  //fix-me: should make this so it isn't dependent on wdt_reset
+  //we can't do anything else until the time is synced
+  if(timeSynced==false && timeSyncInProgress==true){
+     return;
+  }else if(timeSynced==false){
+    //go ahead and sync time
+    sendCommand("c:time");
     return;
   }
   
-  //if no commands are being received and we are in config mode for 8 seconds, reset
   wdt_reset();
-  
   
   //heartbeat determines if the controller is online or offline
   //if the timer has timed out and it is time to send the next heartbeat
-  if(((millis()-heartBeatSent)>=heartBeatDelay)){
+  if(((now()-heartBeatSent)>=heartBeatDelay)){
                     
       //send heartbeat
       char buildCommand[32] = "s:hb?config=" ;
@@ -323,7 +325,7 @@ void loop(){
   }
   
   //check if the controller is offline
-  if(heartBeatOnline == true && millis()-heartBeatLast>=(heartBeatDelay+heartBeatDelayWait)){
+  if(heartBeatOnline == true && now()-heartBeatLast>=(heartBeatDelay+heartBeatDelayWait)){
 
     #if defined(USERSERIALMONITOR)
       if(heartBeatOnline==true){
@@ -333,18 +335,13 @@ void loop(){
               
     heartBeatOnline = false;
   }
-    
-  //we can't do anything else until the time is synced
-  if((timeSynced==false && timeSyncInProgress==false) || timeSynced==false && (millis()-timeSyncSent)>timeSyncDelay){
-      sendCommand("c:time");
-  }
   
   //this prevents sensors from being checked on every pass
-  if(timeSynced==true && (millis()-sensorCheckLast)>sensorCheckDelay){
-    sensorCheckLast = millis();
+  if(timeSynced==true && (now()-sensorCheckLast)>sensorCheckDelay){
+    sensorCheckLast = now();
     
     //time has been synced and we can continue with controller functions
-    time_t timeLocal = getLocalTime();
+    time_t timeLocal = getCurrentTime();
     
     //Serial.println(timeLocal.unixtime());
     //Serial.println("check sensors");
