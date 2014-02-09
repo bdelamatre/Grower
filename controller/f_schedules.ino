@@ -27,7 +27,7 @@ void checkSchedule(struct Schedule &checkingSchedule,time_t checkTime){
     //timer
     checkScheduleTimer(checkingSchedule,checkTime);
   }else if(checkingSchedule.type==2){
-    //soil moisture
+    //soil moisture 
     checkScheduleSoilMoisture(checkingSchedule,checkTime);
   }else if(checkingSchedule.type==3){
     //temperature
@@ -47,7 +47,16 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
   int thisHour = hour(adjustedTime);
   int thisMinute = minute(adjustedTime);
  
-  /*Serial.println();
+  /*Serial.print("days=");
+  Serial.println(checkingSchedule.timerStartWeekdays);
+  Serial.print(",hours=");
+  Serial.println(checkingSchedule.timerStartHours);
+  Serial.print(",minutes=");
+  Serial.println(checkingSchedule.timerStartMinutes);
+  Serial.println();
+      
+ 
+  Serial.println();
   Serial.print("unix before=");
   Serial.println(checkTime);
   Serial.print("unix after");
@@ -66,15 +75,15 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
   Serial.print("=");*/
   
   //check if to turn on
-  if(checkingSchedule.timerStartWeekdays[thisWeekday]==49){
+  if(checkingSchedule.timerStartWeekdays[thisWeekday-1]==49){
     //Serial.print(thisWeekday);
     //Serial.print(", hour match=");
     //day matches
-    if(checkingSchedule.timerStartHours[thisHour]==49){
+    if(checkingSchedule.timerStartHours[thisHour-1]==49){
       //Serial.print(thisHour);
       //Serial.print(", minute match=");
       //hour matches
-      if(checkingSchedule.timerStartMinutes[thisMinute]==49){
+      if(checkingSchedule.timerStartMinutes[thisMinute-1]==49){
         //minute matches
         //turn schedule on
         run = 1;
@@ -86,6 +95,8 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
     }
 
   }
+  
+  Serial.println();
   
   //Serial.println();
   

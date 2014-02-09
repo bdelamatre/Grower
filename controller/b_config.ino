@@ -108,6 +108,8 @@ FLASH_STRING(stringConfigSaved,"Current configuration saved to EEPROM.");
 FLASH_STRING(stringConfigSaveAsIdChanged,"Configuration ID changed from ");
 FLASH_STRING(stringConfigSaveAsIdTo," to ");
 FLASH_STRING(stringResettingDefault,"Resetting to default.");
+FLASH_STRING(stringConfigModeEnded,"config mode ended");
+FLASH_STRING(stringConfigModeStarted,"config mode started");
 #endif
 
 void saveConfig() {
@@ -128,7 +130,7 @@ void saveConfig() {
     #if defined(USESERIALMONITOR)  
       stringSaveConfigWritingDone.print(Serial);
       Serial.println();
-      Serial.println("config mode ended");
+      stringConfigModeEnded.print(Serial);
     #endif
     
 }
@@ -164,7 +166,7 @@ void commandConfigSaveAsId(char* params){
   
   #if defined(USESERIALMONITOR)  
     Serial.println(id);
-    Serial.println("config mode started");
+    stringConfigModeStarted.print(Serial);
   #endif
   
 }
@@ -220,7 +222,11 @@ FLASH_STRING(stringInvalidId," isn't a valid id ");
 FLASH_STRING(stringUpdatingId,"Updating config for id ");
 FLASH_STRING(stringResettingId,"Resetting config for id ");
 FLASH_STRING(stringChanging,"Changing ");
+FLASH_STRING(stringChanged,"Changed ");
 FLASH_STRING(stringChangingTo," to ");
+FLASH_STRING(stringInvalidProperty," invalid property name");
+FLASH_STRING(stringInvalid," invalid");
+//FLASH_STRING(stringResettingId," resetting id");
 #endif
 
 #if !defined(SENSORONLY)
@@ -265,15 +271,15 @@ void commandConfigZone(char* params){
       }else{
         #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
           Serial.print(name);
-          Serial.println(" invalid property name");
+          stringInvalidProperty.print(Serial);
         #endif
         continue;
       }
       
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print("Changed ");
+        stringChanged.print(Serial);
         Serial.print(name);
-        Serial.print(" to ");
+        stringChangingTo.print(Serial);
         Serial.println(value);
       #endif
       
@@ -299,7 +305,7 @@ void commandConfigZoneReset(char* params){
    if(thisId > -1 && thisId < maxZones){
      
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print("resetting id ");
+        stringResettingId.print(Serial);
         Serial.println(thisId);
       #endif
       
@@ -312,7 +318,7 @@ void commandConfigZoneReset(char* params){
       
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
         Serial.print(thisId);
-        Serial.println(" invalid");
+        stringInvalid.print(Serial);
       #endif
       
     }
@@ -366,7 +372,7 @@ void commandConfigSensor(char* params){
       }else{
         #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
           Serial.print(name);
-          Serial.println(" invalid property name");
+          stringInvalidProperty.print(Serial);
         #endif
         continue;
       }
@@ -401,7 +407,7 @@ void commandConfigSensorReset(char* params){
     if(thisId>=0 && thisId<maxSensors){
       
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print("resetting id ");
+        stringResettingId.print(Serial);
         Serial.println(thisId);
       #endif
       
@@ -416,7 +422,7 @@ void commandConfigSensorReset(char* params){
       
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
         Serial.print(thisId);
-        Serial.println(" invalid");
+        stringInvalid.print(Serial);
       #endif
       
     }
@@ -425,7 +431,6 @@ void commandConfigSensorReset(char* params){
       
 }
 
-#if !defined(SENSORONLY)
 void commandConfigSchedule(char* params){
   
   //get id
@@ -558,19 +563,21 @@ void commandConfigSchedule(char* params){
         /*for(int i=0;i<60;i++){
            configStore.schedules[scheduleId].timerStartMinutes[i] = int(value[i]);
         }*/
-      }else if(strcmp(name,fieldTimerStartSeconds)==0){
+      }
+      /*else if(strcmp(name,fieldTimerStartSeconds)==0){
         //cycle through seconds
         for(int i=0;i<60;i++){
            configStore.schedules[scheduleId].timerStartSeconds[i] = int(value[i]);
         }
-      }else if(strcmp(name,fieldValueMin)==0){
+      }*/
+      else if(strcmp(name,fieldValueMin)==0){
         configStore.schedules[scheduleId].valueMin = atoi(value);
       }else if(strcmp(name,fieldValueMax)==0){ 
         configStore.schedules[scheduleId].valueMax = atoi(value);
       }else{
         #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
           Serial.print(name);
-          Serial.println(" invalid property name");
+          stringInvalidProperty.print(Serial);
         #endif
         continue;
       }
@@ -605,7 +612,7 @@ void commandConfigScheduleReset(char* params){
     if(thisId>=0 && thisId<maxSchedules){
       
         #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-          Serial.print("resetting id ");
+        stringResettingId.print(Serial);
           Serial.println(thisId);
         #endif
       
@@ -631,23 +638,20 @@ void commandConfigScheduleReset(char* params){
         for(int i=0;i<60;i++){
            configStore.schedules[thisId].timerStartMinutes[i] = 0;
         }
-        for(int i=0;i<60;i++){
+        /*for(int i=0;i<60;i++){
            configStore.schedules[thisId].timerStartSeconds[i] = 0;
-        }
+        }*/
         configStore.schedules[thisId].valueMin = 0;
         configStore.schedules[thisId].valueMax = 0;
     }else{
       
       #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
         Serial.print(thisId);
-        Serial.println(" invalid");
+        stringInvalid.print(Serial);
       #endif
       
     }
     
   }
   
-  
 }
-#endif
-

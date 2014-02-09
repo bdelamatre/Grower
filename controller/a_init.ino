@@ -7,26 +7,47 @@
   FLASH_STRING(stringSpaces,"  ");
   FLASH_STRING(stringBannerItemSpace,"||    ");
   FLASH_STRING(stringBannerSubitemSpace,"||    ");
+  
+  FLASH_STRING(stringDashSpace," - ");
+  FLASH_STRING(stringComma,",");
+  FLASH_STRING(stringBracketLeft,"(");
+  FLASH_STRING(stringBrackerRight,")");
 #endif
 
-#if defined(USEETHERNETCOM)  
+#if defined(USEETHERNETCOM) 
+
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
+  FLASH_STRING(stringInitEthernet,"|| Ethernet...");  
+  FLASH_STRING(stringManual,"Manual...");  
+  FLASH_STRING(stringDhcp,"DHCP...");  
+  FLASH_STRING(stringFail,"FAIL");
+#endif
+
 void initEthernet(){
 
-  Serial.print("|| Ethernet...");
+  #if defined(DEBUG) && defined(USESERIALMONITOR)  
+    stringInitEthernet.print(Serial);
+  #endif
     
   boolean ethernetStarted = false;
   if(configStore.dhcp==false){
-    Serial.print("Manual...");
+    #if defined(DEBUG) && defined(USESERIALMONITOR)  
+      stringManual.print(Serial);
+    #endif    
     Ethernet.begin(configStore.mac,configStore.address);
     ethernetStarted = true;
     Serial.print(Ethernet.localIP());
   }else{
-    Serial.print("DHCP...");
+    #if defined(DEBUG) && defined(USESERIALMONITOR)  
+      stringDhcp.print(Serial);
+    #endif    
     if(Ethernet.begin(configStore.mac)!=0){
       ethernetStarted = true;
       Serial.print(Ethernet.localIP());
     }else{
-      Serial.print("FAIL");
+      #if defined(DEBUG) && defined(USESERIALMONITOR)  
+        stringFail.print(Serial);
+      #endif
     }
   }
   
@@ -34,8 +55,8 @@ void initEthernet(){
   //Serial.print("|| Web Server...");
   if(ethernetStarted==true){
     
-    W5100.setRetransmissionTime(0x07D0);
-    W5100.setRetransmissionCount(4);
+    //W5100.setRetransmissionTime(0x07D0);
+    //W5100.setRetransmissionCount(4);
     
     //server.begin();
     //Serial.print("OK");
@@ -119,31 +140,36 @@ void initSd(){
 }
 #endif
 
-#if defined(DEBUG) && defined(USESERIALMONITOR) 
+#if defined(USESERIALMONITOR) 
 FLASH_STRING(stringInitRtc,"|| RTC...");
 FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
-FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
+FLASH_STRING(stringFound,"FOUND");  
+//FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
 #endif
 
 void initRtc(){
 
   //initialize clock
-  #if defined(DEBUG) && defined(USESERIALMONITOR)  
+  #if defined(USESERIALMONITOR) 
     stringInitRtc.print(Serial);
   #endif
   
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
   
   if (timeStatus() != timeSet){ 
-     Serial.print("UNAVAILABLE");
+    #if defined(USESERIALMONITOR) 
+       stringNotAvailable.print(Serial);
+    #endif
   }else{
-     Serial.print("FOUND");
-     timeSyncedDateTime = now();
+    #if defined(USESERIALMONITOR) 
+       stringFound.print(Serial);
+    #endif
+    timeSyncedDateTime = now();
   }
   
   #if defined(DEBUG) && defined(USESERIALMONITOR)  
     stringOk.print(Serial);
-    Serial.print("(");  
+    stringBracketLeft.print(Serial);
     printDateTimeToSerial(timeSyncedDateTime);
     Serial.print(")");
     Serial.println();
@@ -207,11 +233,24 @@ void initSensors(){
     #if defined(DEBUG) && defined(USESERIALMONITOR)
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
-      Serial.print(" - ");
+      stringDashSpace.print(Serial);      
+      stringDashSpace.print(Serial);
     #endif
     initSensor(configStore.sensors[i]);
   }
 }
+
+#if defined(DEBUG) && defined(USESERIALMONITOR)  
+FLASH_STRING(stringDisabled,"Disabled");
+FLASH_STRING(stringAnalog,"Analog");
+FLASH_STRING(stringDS18B20,"DS18B20");
+FLASH_STRING(stringDHT22,"DHT22");
+FLASH_STRING(stringLight,"Light");
+FLASH_STRING(stringInitPin," (pin=");
+FLASH_STRING(stringInitPin2,", pin2=");
+FLASH_STRING(stringFreqCheck,", frequencyCheckSeconds=");
+FLASH_STRING(stringFreqLog,", frequencyLogSeconds=");
+#endif
 
 void initSensor(struct Sensor &thisSensor){
  
@@ -219,50 +258,46 @@ void initSensor(struct Sensor &thisSensor){
   if(thisSensor.type==0){
     //zone off
     #if defined(DEBUG)
-      Serial.print("Disabled");
+      stringDisabled.print(Serial);
     #endif
   }else if(thisSensor.type==1){
     //soil moisture (analog)
     pinMode(thisSensor.pin, INPUT);
     #if defined(DEBUG)
-      Serial.print("Analog");
+      stringAnalog.print(Serial);
     #endif
   }else if(thisSensor.type==2){
     //DS18B20
     pinMode(thisSensor.pin, INPUT);
     #if defined(DEBUG)
-      Serial.print("DS18B20");
+      stringDS18B20.print(Serial);
     #endif
   }else if(thisSensor.type==3){
     //dht22
     pinMode(thisSensor.pin, INPUT);
     #if defined(DEBUG)
-      Serial.print("DHT22");
+      stringDHT22.print(Serial);
     #endif
   }else if(thisSensor.type==4){
     //light
     pinMode(thisSensor.pin, INPUT);
     #if defined(DEBUG)
-      Serial.print("Light");
+      stringLight.print(Serial);
     #endif
   }
   
   #if defined(DEBUG)
-    Serial.print(" - ");
+    stringDashSpace.print(Serial);
     Serial.print(thisSensor.name);
     
     if(thisSensor.type>0){
-      Serial.print(" (");
-      Serial.print("pin=");
+      stringInitPin.print(Serial);
       Serial.print(thisSensor.pin);
-      Serial.print(", ");
-      Serial.print("pin2=");
+      stringInitPin2.print(Serial);
       Serial.print(thisSensor.pin2);
-      Serial.print(", ");
-      Serial.print("frequencyCheckSeconds=");
+      stringFreqCheck.print(Serial);
       Serial.print(thisSensor.frequencyCheckSeconds);
-      Serial.print(", ");
-      Serial.print("frequencyLogSeconds=");
+      stringFreqLog.print(Serial);
       Serial.print(thisSensor.frequencyLogSeconds);
       Serial.print(")");
     }
@@ -272,10 +307,9 @@ void initSensor(struct Sensor &thisSensor){
 
 }
 
-#if !defined(SENSORONLY)
-
 #if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringInitZones,"|| Initializing zones:");
+FLASH_STRING(stringInitRelay,"5V Relay");
 #endif
 
 void initZones(){
@@ -287,7 +321,7 @@ void initZones(){
     #if defined(DEBUG) && defined(USESERIALMONITOR)  
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
-      Serial.print(" - ");
+      stringDashSpace.print(Serial);
     #endif
     initZone(configStore.zones[i]);
   }
@@ -298,17 +332,17 @@ void initZone(struct Zone &thisZone){
   if(thisZone.type==0){
     //sensor off
     #if defined(DEBUG)
-      Serial.print("Disabled");
+      stringDisabled.print(Serial);
     #endif
   }else if(thisZone.type==1){
     #if defined(DEBUG)
-      Serial.print("5V Relay");
+      stringInitRelay.print(Serial);
     #endif
     pinMode(thisZone.pin, OUTPUT);
   }
  
   #if defined(DEBUG)
-    Serial.print(" - ");
+    stringDashSpace.print(Serial);
     Serial.print(thisZone.name);
     Serial.println();
   #endif
@@ -317,6 +351,11 @@ void initZone(struct Zone &thisZone){
 
 #if defined(DEBUG) && defined(USESERIALMONITOR)  
 FLASH_STRING(stringInitSchedules,"|| Initializing schedules:");
+FLASH_STRING(stringInitTimer,"Timer");
+FLASH_STRING(stringInitMoisture,"Soil Moisture");
+FLASH_STRING(stringInitTemperature,"Temperature");
+FLASH_STRING(stringInitSchSensors," (sensors=");
+FLASH_STRING(stringInitSchZones," zones=");
 #endif
 
 void initSchedules(){
@@ -328,7 +367,7 @@ void initSchedules(){
     #if defined(DEBUG) && defined(USESERIALMONITOR)
       stringBannerSubitemSpace.print(Serial);
       Serial.print(i);
-      Serial.print(" - ");
+      stringDashSpace.print(Serial);
     #endif
     initSchedule(configStore.schedules[i]);
   }
@@ -339,19 +378,19 @@ void initSchedule (struct Schedule &thisSchedule){
   if(thisSchedule.type==0){
     //sensor off
     #if defined(DEBUG)
-      Serial.print("Disabled");
+      stringDisabled.print(Serial);
     #endif
   }else if(thisSchedule.type==1){
     #if defined(DEBUG)
-      Serial.print("Timer");
+      stringInitTimer.print(Serial);
     #endif
   }else if(thisSchedule.type==2){
     #if defined(DEBUG)
-      Serial.print("Soil Moisture");
+      stringInitMoisture.print(Serial);
     #endif
   }else if(thisSchedule.type==3){
     #if defined(DEBUG)
-      Serial.print("Temperature");
+      stringInitTemperature.print(Serial);
     #endif
   }
   
@@ -359,28 +398,35 @@ void initSchedule (struct Schedule &thisSchedule){
   
   #if defined(DEBUG)
     if(thisSchedule.type!=0){
-      Serial.print(" - ");
-      Serial.print(thisSchedule.name);
-      Serial.print(" (sensors=");
+      stringDashSpace.print(Serial);
+      Serial.print(thisSchedule.name); 
+      stringInitSchSensors.print(Serial);
       for(int i=0;i<maxSensors;i++){
         int thisSensorId = thisSchedule.sensors[i];
         if(thisSensorId > -1){
           //we subtract one because this is the actual ID
           Serial.print(configStore.sensors[thisSensorId].name);
-          Serial.print(",");
+          stringComma.print(Serial);
         }
       }
         
-      Serial.print(" zones=");
+      stringInitSchZones.print(Serial);
       for(int i=0;i<maxZones;i++){
         int thisZoneId = thisSchedule.zones[i];
         //Serial.println(thisZoneId);
         if(thisZoneId > -1){
           //we subtract one because this is the actual ID
           Serial.print(configStore.zones[thisZoneId].name);
-          Serial.print(",");
+          stringComma.print(Serial);
         }
       }
+      
+      Serial.print(",days=");
+      Serial.print(thisSchedule.timerStartWeekdays);
+      Serial.print(",hours=");
+      Serial.print(thisSchedule.timerStartHours);
+      Serial.print(",minutes=");
+      Serial.print(thisSchedule.timerStartMinutes);
       
       Serial.print(")");
     
@@ -389,6 +435,4 @@ void initSchedule (struct Schedule &thisSchedule){
   #endif
   
 }
-#endif
-
 

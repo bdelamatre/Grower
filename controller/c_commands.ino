@@ -6,6 +6,7 @@ FLASH_STRING(stringSendingCommand,"[TX] ");
 FLASH_STRING(stringExecuting,"[RX] ");
 FLASH_STRING(stringWith," ,paramater= ");
 FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
+FLASH_STRING(stringBufferOver,"buffer overflowing");
 #endif
   
 
@@ -14,7 +15,7 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   
   if((bufferPosition-2)>=maxBufferSize){
     #if defined(USESERIALMONITOR)
-      Serial.println("buffer overflowing");
+      stringBufferOver.print(Serial);
     #endif
     //memset(commandBuffer,0,maxBufferSize);
     //fix-me: we need to do something better here
@@ -130,7 +131,7 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
   
   if((bufferPosition-2)>=maxBufferSize){
     #if defined(USESERIALMONITOR)
-      Serial.println("buffer overflowing");
+      stringBufferOver.print(Serial);
     #endif
     //memset(commandBuffer,0,maxBufferSize);
     //fix-me: we need to do something better here

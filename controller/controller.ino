@@ -31,7 +31,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 //#include <SoftwareSerial.h> //DHT by AdaFruit
 #include <SPI.h>
 #include <Ethernet.h>
-#include <utility/w5100.h>
+//#include <utility/w5100.h>
 
 #define USESERIALMONITOR
 //#define CLIONMONITOR
@@ -44,7 +44,7 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 #define DS1307_ADDRESS 0x68
 
 #define DEBUG
-//#define DEBUGETHERNET
+#define DEBUGETHERNET
 //#define DEBUGSENSORS
 //#define DEBUGSCHEDULE
 //#define DEBUGCONFIG
@@ -56,8 +56,8 @@ For non-standard libraries copy submodules included under FatRabbitGarden/librar
 
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
-#define CONFIG_VERSION "1v3"
-#define CONFIG_START 0
+#define CONFIG_VERSION "2v2"
+#define CONFIG_START 32
 
 const char commandStringSystemHeartbeat[]     = "s:hb";
 const char commandStringSystemRestart[]       = "s:restart";
@@ -135,8 +135,8 @@ schedules, zones and sensors, but increase the RAM and EEPROM
 usage. Be careful if increasing these that you stay within your
 system limits, or stability issue will occur.
 */
-const int maxSchedules = 6; 
-const int maxZones = 6; 
+const int maxSchedules = 4; 
+const int maxZones = 4; 
 const int maxSensors = 6;
 const int maxNameLength = 7;
 const int maxParamNameLength = 11;
@@ -148,10 +148,10 @@ struct Schedule{
   int zones[maxZones]; //zone id, 0 to maxZones specified
   int zonesRunType; //0=series, 1=parallel
   int sensors[maxSensors]; //zone id, 0 to maxSensors specified
-  char timerStartWeekdays[7]; //1-7
-  char timerStartHours[24]; //1-24
-  char timerStartMinutes[60];//1-60
-  char timerStartSeconds[60];//1-60
+  char timerStartWeekdays[8]; //1-7
+  char timerStartHours[25]; //1-24
+  char timerStartMinutes[61];//1-60
+  //char timerStartSeconds[60];//1-60
   int valueMin; //will turn zones on when this value is reached by the specified sensors
   int valueMax; //will turn zones off when this value is reached by the specified sensors
   int isRunning; //0=no,1=yes
@@ -210,10 +210,10 @@ struct ConfigStore{
   CONFIG_VERSION,
   -6,
   "0",
-  "test",
+  "prop",
   "0",
   #if defined(USEETHERNETCOM)
-  "192.168.2.100",
+  "grower.io",
   8080,
   {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
   true,
@@ -228,13 +228,13 @@ void(* restart) (void) = 0; //declare reset function @ address 0\
   #endif
 // the setup routine runs once when you press reset:
 void setup() {
-  
+    
   //start wire
   Wire.begin();
   
   //if debug serial, we will output debug statements to serial
   #if defined(USESERIALMONITOR)
-    Serial.begin(19200);
+    Serial.begin(9600);
   #endif
   
   #if defined(USESERIALCOM)
@@ -265,14 +265,18 @@ void setup() {
     printAvailableMemory();  
   #endif
   
+  
   #if defined(USESERIALMONITOR)
     printCommandLineAvailable();
   #endif
 
   //watchdog, 8 seconds
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
 
 }
+
+FLASH_STRING(stringTimeSync," [TIME] initial sync");
+FLASH_STRING(stringHeartBeatOffline,"[HEARTBEAT] [OFFLINE]");
 
 //  loop - runs over and over again forever:
 void loop(){
@@ -303,9 +307,13 @@ void loop(){
   //fix-me: should make this so it isn't dependent on wdt_reset
   //we can't do anything else until the time is synced
   if(timeSynced==false && timeSyncInProgress==true){
+     //Serial.println("not synced");
      return;
   }else if(timeSynced==false){
     //go ahead and sync time
+    #if defined(USESERIALMONITOR)
+      stringTimeSync.print(Serial);
+    #endif
     sendCommand("c:time");
     return;
   }
@@ -329,7 +337,7 @@ void loop(){
 
     #if defined(USERSERIALMONITOR)
       if(heartBeatOnline==true){
-        Serial.println("[HEARTBEAT] [OFFLINE]");
+        stringHeartBeatOffline.print(Serial);
       }
     #endif
               

@@ -47,7 +47,7 @@ void printDateTimeToSerial(time_t t){
 
 void printCommandLineAvailable(){
 
-  Serial.println("You may enter commands now. All commands must be terminated with a < (left-carrot).");
+  //Serial.println("You may enter commands now. All commands must be terminated with a < (left-carrot).");
 
 }
 
