@@ -54,9 +54,13 @@ Global Options
 
 ***********************************************************/
 
+#define DEFAULT_TIMEZONE -6
 #define SETTIME                    //manualy set system time, useful for debugging without an RTC or NTP access
 #define STOPFORTIMESYNC false      //if testing the system without time sync
 //#define MANUALCONFIG             //instead of using EEPROM, override the configuration manually in loadManualConfig()
+#define DEFAULT_APIKEY "0"
+#define DEFAULT_DEVICEID "prop"
+#define DEFAULT_CONFIGID  "0"
 #define CONFIG_VERSION "2v2"       //when reading from EEPROM, identify saved configurations with this version
 #define CONFIG_START 32            //position in EEPROM to start writing the configuration
 
@@ -116,14 +120,6 @@ Allows manual interaction with the CLI while monitoring the Serial interface
 #define USE_MODULE_CLIONSERIALMONITOR true
 
 
-#if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
-  //do not edit these, system variables
-  int commandBufferPositionMonitor = 0;
-  boolean commandBufferReadyToProcessMonitor = false;
-  char commandBufferMonitor[maxBufferSize]; 
-#endif
-
-
 /*********************************************************** 
 
 Module - Ethernet Communication
@@ -138,6 +134,11 @@ Device will send and receive commands over Ethernet
 //system variables, do not edit this
 #if USE_MODULE_ETHERNETCOM == true
 
+  #DEFAULT_SERVER_URL = "grower.io"
+  #DEFAULT_SERVER_PORT = 80
+  #DEFAULT_CLIENT_MAC = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 }
+  #DEFAULT_CLIENT_DHCP = true
+
   /** Support for SPI, needed if using an Ethernet shield **/
   #include <SPI.h>
   
@@ -146,12 +147,6 @@ Device will send and receive commands over Ethernet
   
   /** Wiznet library that provides additional configuration options for Ethernet **/
   #include <utility/w5100.h>
-
-  //do not edit these, system variables
-  int commandBufferPositionEthernet = 0;
-  boolean commandBufferReadyToProcessEthernet = false;
-  char commandBufferEthernet[maxBufferSize];  
-  EthernetClient client; //define client
   
 #endif
 
@@ -186,13 +181,6 @@ Device will send and receive commands over Serial interface defined for communic
 //#define SERIALCOM Serial // Arduino Uno and devices without hardware serial/UART interface
 #define SERIALCOM_BAUD_RATE 115200
 
-#if USE_MODULE_SERIALCOM == true
-  //do not edit these, system variables
-  int commandBufferPositionSerial = 0;
-  boolean commandBufferReadyToProcessSerial = false;
-  char commandBufferSerial[maxBufferSize];
-#endif
-
 
 /*********************************************************** 
 
@@ -207,11 +195,12 @@ If using the SERIALCOM module, you can specify whether SERIALCOM should use the 
 
 #if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true
 
+  #define SOFTWARE_SERIAL_PIN_RX 8
+  #define SOFTWARE_SERIAL_PIN_TX 9
+
   /** Support for Software Serial interfaces, useful when working with a limited number of serial interfaces **/
   #include <SoftwareSerial.h>
   
-  SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9. Configured for SparkFun Electric Imp shield
-
 #endif
 
 
@@ -256,17 +245,12 @@ functions will not work.
 */
 #if USE_MODULE_SD == true
 
-  /** Read/Write to SD card **/
-  #include <SD.h>
-
   const int chipSelect = 4;
   const int hardwareSelect = 14; //Goldilocks
   //const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
   
-  //do not edit these, system variables
-  Sd2Card card;
-  SdVolume volume;
-  SdFile root;
+  /** Read/Write to SD card **/
+  #include <SD.h>
   
 #endif
 
@@ -342,6 +326,40 @@ unsigned long sensorCheckLast = 0;     //the last time we checked for sensor dat
 /** reset **/
 void(* restart) (void) = 0; //declare reset function @ address 0\
 
+/** module CLIONSERIALMONITOR system variables **/
+#if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
+  int commandBufferPositionMonitor = 0;
+  boolean commandBufferReadyToProcessMonitor = false;
+  char commandBufferMonitor[maxBufferSize]; 
+#endif
+
+/** module ETHERNETCOM system variables **/
+#if USE_MODULE_ETHERNETCOM == true
+  int commandBufferPositionEthernet = 0;
+  boolean commandBufferReadyToProcessEthernet = false;
+  char commandBufferEthernet[maxBufferSize];  
+  EthernetClient client;                                 //define client
+#endif
+
+/** module SERIALCOM system variables **/
+#if USE_MODULE_SERIALCOM == true
+  int commandBufferPositionSerial = 0;
+  boolean commandBufferReadyToProcessSerial = false;
+  char commandBufferSerial[maxBufferSize];
+#endif
+
+/** module SERIALCOM_SOFTWARESERIAL system variables **/
+#if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true
+  SoftwareSerial softSerial(SOFTWARE_SERIAL_PIN_RX, SOFTWARE_SERIAL_PIN_TX); // RX on 8, TX on 9. Configured for SparkFun Electric Imp shield
+#endif
+
+/** module SD system variables **/
+#if USE_MODULE_SD == true
+  Sd2Card card;
+  SdVolume volume;
+  SdFile root;
+#endif
+
 //schedule structure, managed by config structure
 struct Schedule{
   char name[maxNameLength];
@@ -405,15 +423,15 @@ struct ConfigStore{
   Sensor sensors[maxSensors];
 } configStore={
   CONFIG_VERSION,
-  -6,
-  "0",
-  "prop",
-  "0",
+  DEFAULT_TIMEZONE,
+  DEFAULT_CONFIGID,
+  DEFAULT_DEVICEID,
+  DEFAULT_APIKEY,
   #if USE_MODULE_ETHERNETCOM == true
-  "grower.io",
-  8080,
-  {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
-  true,
+  DEFAULT_SERVER_URL,
+  DEFAULT_SERVER_PORT,
+  DEFAULT_CLIENT_MAC,
+  DEFAULT_CLIENT_DHCP,
   #endif
 };
 
