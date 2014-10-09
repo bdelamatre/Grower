@@ -19,25 +19,25 @@ void checkSensor(struct Sensor &checkingSensor, time_t checkTime){
   }else{
     
       #if defined(DEBUGSENSORS)
-        Serial.print(checkingSensor.name);
-        Serial.print(", last checked at ");
-        Serial.print(checkingSensor.statusLastChecked);
+        SERIALMONITOR.print(checkingSensor.name);
+        SERIALMONITOR.print(", last checked at ");
+        SERIALMONITOR.print(checkingSensor.statusLastChecked);
       #endif 
       
       if(checkingSensor.frequencyCheckSeconds>0 && checkingSensor.statusLastChecked>0){
         time_t nextTime = checkingSensor.statusLastChecked+checkingSensor.frequencyCheckSeconds;
         
         #if defined(DEBUGSENSORS)
-          Serial.print(", next time in ");
-          Serial.print(checkingSensor.frequencyCheckSeconds);
-          Serial.print(" at a ");
-          Serial.print(nextTime);
+          SERIALMONITOR.print(", next time in ");
+          SERIALMONITOR.print(checkingSensor.frequencyCheckSeconds);
+          SERIALMONITOR.print(" at a ");
+          SERIALMONITOR.print(nextTime);
         #endif
         
         if(checkTime < nextTime && checkingSensor.statusLastChecked > 0){
           
           #if defined(DEBUGSENSORS)
-            Serial.println();
+            SERIALMONITOR.println();
           #endif
           
           return;
@@ -45,7 +45,7 @@ void checkSensor(struct Sensor &checkingSensor, time_t checkTime){
       }
           
       #if defined(DEBUGSENSORS)   
-        Serial.println();
+        SERIALMONITOR.println();
       #endif
       
       checkingSensor.statusLastChecked = checkTime;
@@ -73,14 +73,14 @@ void checkSensor(struct Sensor &checkingSensor, time_t checkTime){
       }
       
       #if defined(DEBUGSENSORS)
-        Serial.print(checkingSensor.name);
-        Serial.print("=");
-        Serial.print(checkingSensor.statusValue);
+        SERIALMONITOR.print(checkingSensor.name);
+        SERIALMONITOR.print("=");
+        SERIALMONITOR.print(checkingSensor.statusValue);
         if(checkingSensor.statusValue2){
-          Serial.print(", ");
-          Serial.print(checkingSensor.statusValue2);
+          SERIALMONITOR.print(", ");
+          SERIALMONITOR.print(checkingSensor.statusValue2);
         }
-        Serial.println();
+        SERIALMONITOR.println();
       #endif
       
   }

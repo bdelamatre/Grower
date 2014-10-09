@@ -2,7 +2,7 @@
 LOG functions
 ************************************/
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringLogSchedule,"[LOG] [SCHEDULE] ");
 FLASH_STRING(stringLogSensor,"[LOG] [SENSOR] ");
 FLASH_STRING(stringLogZone,"[LOG] [ZONE] ");
@@ -28,9 +28,9 @@ void addSensorLog(struct Sensor &loggingSensor, unsigned long logTime, String lo
   thisLog += "&message=";
   thisLog += logMessage;
   
-  #if defined(USESERIALMONITOR) 
-    stringLogSensor.print(Serial);
-    Serial.println(thisLog);
+  #if USE_MODULE_SERIALMONITOR == true 
+    stringLogSensor.print(SERIALMONITOR);
+    SERIALMONITOR.println(thisLog);
   #endif
   
   char buffer[maxBufferSize];
@@ -56,9 +56,9 @@ void addScheduleLog(struct Schedule &loggingSchedule, unsigned long logTime, Str
   thisLog += "&message=";
   thisLog += logMessage;
   
-  #if defined(USESERIALMONITOR) 
-    stringLogSchedule.print(Serial);
-    Serial.println(thisLog);
+  #if USE_MODULE_SERIALMONITOR == true 
+    stringLogSchedule.print(SERIALMONITOR);
+    SERIALMONITOR.println(thisLog);
   #endif
   
   char buffer[maxBufferSize];
@@ -88,9 +88,9 @@ void addZoneLog(struct Zone &loggingZone, unsigned long logTime, String logSubje
   thisLog += "&message=";
   thisLog += logMessage;
   
-  #if defined(USESERIALMONITOR) 
-    stringLogZone.print(Serial);
-    Serial.println(thisLog);
+  #if USE_MODULE_SERIALMONITOR == true 
+    stringLogZone.print(SERIALMONITOR);
+    SERIALMONITOR.println(thisLog);
   #endif
   
   char buffer[maxBufferSize];

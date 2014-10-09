@@ -5,7 +5,7 @@
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
-    Serial.println("new client");
+    SERIALMONITOR.println("new client");
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
     while (client.connected()) {
@@ -56,7 +56,7 @@
     delay(1);
     // close the connection:
     client.stop();
-    Serial.println("client disonnected");
+    SERIALMONITOR.println("client disonnected");
   }
  
 }

@@ -1,7 +1,7 @@
 const char sendTermination = '>';
 const char receiveTermination = '<';
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringSendingCommand,"[TX] ");
 FLASH_STRING(stringExecuting,"[RX] ");
 FLASH_STRING(stringWith," ,paramater= ");
@@ -10,12 +10,12 @@ FLASH_STRING(stringBufferOver,"buffer overflowing");
 #endif
   
 
-#if defined(USEETHERNETCOM)  
+#if USE_MODULE_ETHERNETCOM == true  
 void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
   if((bufferPosition-2)>=maxBufferSize){
-    #if defined(USESERIALMONITOR)
-      stringBufferOver.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringBufferOver.print(SERIALMONITOR);
     #endif
     //memset(commandBuffer,0,maxBufferSize);
     //fix-me: we need to do something better here
@@ -33,8 +33,8 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   
         char c = client.read();
         
-        #if defined(DEBUGETHERNET)
-          Serial.print(c);
+        #if DEBUGETHERNET == true
+          SERIALMONITOR.print(c);
         #endif
         
         if(c == '\n' && currentLineIsBlank==true){
@@ -60,7 +60,7 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
             client.stop();
             break;
           }else{
-            //Serial.print(c);
+            //SERIALMONITOR.print(c);
             commandBuffer[bufferPosition] = c;
             bufferPosition++;
           }
@@ -80,8 +80,10 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   
   //process the command buffer
   if(readyToProcess==true){
-    //go ahead and reset the watchdog if the buffer is ready to process
-    wdt_reset();
+    #if USE_MODULE_WATCHDOG == true
+      //go ahead and reset the watchdog if the buffer is ready to process
+      wdt_reset();
+    #endif
     //process commands in the buffer
     processBuffer(commandBuffer);
     //fix-me: this shouldn't be necessary because of strtok
@@ -100,8 +102,8 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
 /*void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
   if((bufferPosition-2)>=maxBufferSize){
-    #if defined(USESERIALMONITOR)
-      Serial.println("buffer overflowing");
+    #if USE_MODULE_SERIALMONITOR == true
+      SERIALMONITOR.println("buffer overflowing");
     #endif
     //memset(commandBuffer,0,maxBufferSize);
     //fix-me: we need to do something better here
@@ -127,11 +129,12 @@ void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &rea
   
 }*/  
 
-void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+//void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+void readSerialToBuffer(Stream &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
   
   if((bufferPosition-2)>=maxBufferSize){
-    #if defined(USESERIALMONITOR)
-      stringBufferOver.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringBufferOver.print(SERIALMONITOR);
     #endif
     //memset(commandBuffer,0,maxBufferSize);
     //fix-me: we need to do something better here
@@ -144,7 +147,7 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
   while(serial.available()>0){
     
     inChar = serial.read(); 
-    
+        
     //done building command
     if (inChar == '^') {
       readyToProcess = true;
@@ -157,8 +160,12 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
   
     //process the command buffer
   if(readyToProcess==true){
-    //go ahead and reset the watchdog if the buffer is ready to process
-    wdt_reset();
+    
+    #if USE_MODULE_WATCHDOG == true
+      //go ahead and reset the watchdog if the buffer is ready to process
+      wdt_reset();
+    #endif
+    
     //process commands in the buffer
     processBuffer(commandBuffer);
     //fix-me: this shouldn't be necessary because of strtok
@@ -179,8 +186,8 @@ void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &buffer
 
 void processBuffer(char* commandBuffer){
   
-   //Serial.print("process=");
-   //Serial.println(commandBuffer);
+   //SERIALMONITOR.print("process=");
+   //SERIALMONITOR.println(commandBuffer);
      
     char * thisCommand = strtok_r(commandBuffer,"<",&commandBuffer);
     while (commandBuffer != NULL)
@@ -206,50 +213,47 @@ void sendCommand(char* thisCommand){
     //timeSyncSent = millis();
     timeSyncInProgress = true;
     
-    #if defined(DEBUGTIMESYNC)
-      stringSendingCommand.print(Serial);
-      Serial.println(thisCommand);
+    #if DEBUGTIMESYNC == true
+      stringSendingCommand.print(SERIALMONITOR);
+      SERIALMONITOR.println(thisCommand);
     #endif
   }else if(strstr(thisCommand,commandStringSystemHeartbeat)!=0){
 
     heartBeatSent = now();
     heartBeatInProgress = true;
       
-    #if defined(DEBUGHEARTBEAT)
-      stringSendingCommand.print(Serial);
-      Serial.println(thisCommand);
+    #if DEBUGHEARTBEAT == true
+      stringSendingCommand.print(SERIALMONITOR);
+      SERIALMONITOR.println(thisCommand);
     #endif
     
   }else{
-    #if defined(USESERIALMONITOR)
-      stringSendingCommand.print(Serial);
-      Serial.println(thisCommand);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringSendingCommand.print(SERIALMONITOR);
+      SERIALMONITOR.println(thisCommand);
     #endif
-  }
+  } 
     
-  //Serial.print("sending=");
-  //Serial.println(thisCommand);  
-    
-  #if defined(USESERIALCOM)
-  #if defined(USESOFTWARESERIAL)  
+  #if USE_MODULE_SERIALCOM == true
+  #if USESOFTWARESERIAL == true  
     softSerial.write(thisCommand);
     softSerial.write(">");
   #else
-    Serial1.write(thisCommand);
-    Serial1.write(">");
+    SERIALCOM.write(thisCommand);
+    SERIALCOM.write(">");
   #endif
   #endif
   
-  #if defined(USEETHERNETCOM)
+  #if USE_MODULE_ETHERNETCOM == true
     
-    #if defined(DEBUGETHERNET)
-      Serial.print("connecting...");
+    #if DEBUGETHERNET == true
+      SERIALMONITOR.print("connecting...");
     #endif
     
     if (client.connect(configStore.server, configStore.serverPort)) {
       
-      #if defined(DEBUGETHERNET)
-        Serial.println("connected");
+      #if DEBUGETHERNET == true
+        SERIALMONITOR.println("connected");
       #endif
 
       // Make a HTTP request:
@@ -278,13 +282,13 @@ void sendCommand(char* thisCommand){
 
     }else{
       client.stop();
-      #if defined(DEBUGETHERNET)
-        Serial.println("failed to connect");
+      #if DEBUGETHERNET == true
+        SERIALMONITOR.println("failed to connect");
       #endif
     }
   #endif
  
-  #if defined(DEBUG) && defined(USESERIALMONITOR)
+  #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true
     printAvailableMemory();
   #endif
   
@@ -325,14 +329,18 @@ void executeCommand(char* command, char* params){
   if(strcmp(command,commandStringSystemHeartbeat)==0){
       commandSystemHeartbeat(params);
       isHeartbeat = true;
-  //confirm that a data log was received
+  //set the current time on the system
   }else if(strcmp(command,commandStringConfigSetTime)==0){
       commandConfigSetTime(atol(params));
       isTimesync = true;
-  //save configuration to EEPROM
+  //print the current system information
+  }if(strcmp(command,commandStringSystemInfo)==0){
+      commandSystemInformation(params);
+  //set the id of the next saved configuration
   }else if(strcmp(command,commandStringConfigSaveAsId)==0){
-      //Serial.println("save as id");
+      //SERIALMONITOR.println("save as id");
       commandConfigSaveAsId(params);
+  //save configuration to EEPROM
   }else if(strcmp(command,commandStringConfigSave)==0){
       commandConfigSave(params);
   //reset configuration to default (nullify EEPROM)
@@ -348,7 +356,7 @@ void executeCommand(char* command, char* params){
   }else if(strcmp(command,commandStringDataLogReceived)==0){
       commandDataLogReceived(params);
   //configure a zone
-  #if !defined(SENSORONLY)
+  #if SENSORONLY == false
   }else if(strcmp(command,commandStringConfigZone)==0){
       commandConfigZone(params);
   //override a zone on
@@ -363,94 +371,114 @@ void executeCommand(char* command, char* params){
       commandConfigSensor(params);
   }else if(strcmp(command,commandStringConfigSensorReset)==0){
       commandConfigSensorReset(params);
+  }else if(strcmp(command,commandStringTestFactory)==0){
+      commandTestFactory(params);
+  }else if(strcmp(command,commandStringTestHeartbeat)==0){
+      commandTestHeartbeat(params);
+  }else if(strcmp(command,commandStringTestTime)==0){
+      commandTestTime(params);
+  }else if(strcmp(command,commandStringTestRTC)==0){
+      commandTestRTC(params);
+  }else if(strcmp(command,commandStringTestSD)==0){
+      commandTestSD(params);
+  }else if(strcmp(command,commandStringTestZones)==0){
+      commandTestZones(params);
+  }else if(strcmp(command,commandStringTestLoadConfig)==0){
+      commandTestLoadFactoryConfiguration(params);
   }else{
     isUnrecognized = true;
   }
     
   if(isHeartbeat==true){
   
-    #if defined(DEBUGHEARTBEAT)
-      stringExecuting.print(Serial);
-      Serial.print(command);
-      stringWith.print(Serial);
-      Serial.println(params);
+    #if DEBUGHEARTBEAT == true
+      stringExecuting.print(SERIALMONITOR);
+      SERIALMONITOR.print(command);
+      stringWith.print(SERIALMONITOR);
+      SERIALMONITOR.println(params);
     #endif
     
   }else if(isTimesync==true){
   
-    #if defined(DEBUGTIMESYNC)
-      stringExecuting.print(Serial);
-      Serial.print(command);
-      stringWith.print(Serial);
-      Serial.println(params);
+    #if DEBUGTIMESYNC == true
+      stringExecuting.print(SERIALMONITOR);
+      SERIALMONITOR.print(command);
+      stringWith.print(SERIALMONITOR);
+      SERIALMONITOR.println(params);
     #endif
     
   }else if(isUnrecognized==true){
   
-    #if defined(USESERIALMONITOR)
-      stringUnrecognizedCommand.print(Serial);
-      Serial.println(command);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringUnrecognizedCommand.print(SERIALMONITOR);
+      SERIALMONITOR.println(command);
     #endif
     
   }else{
     
-    #if defined(USESERIALMONITOR)
-      stringExecuting.print(Serial);
-      Serial.print(command);
-      stringWith.print(Serial);
-      Serial.println(params);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringExecuting.print(SERIALMONITOR);
+      SERIALMONITOR.print(command);
+      stringWith.print(SERIALMONITOR);
+      SERIALMONITOR.println(params);
     #endif
     
   }
 
-  #if defined(DEBUG) && defined(USESERIALMONITOR)
+  #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true
     printAvailableMemory();
   #endif
 
 }
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringRestarting,"Restarting system. ");
 #endif
 
 void commandSystemRestart(char* params){
-  #if defined(USESERIALMONITOR)
-    stringRestarting.print(Serial);
-    Serial.println();
+  #if USE_MODULE_SERIALMONITOR == true
+    stringRestarting.print(SERIALMONITOR);
+    SERIALMONITOR.println();
   #endif
   restart();
 }
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringReinit,"Reinitializing controller.");
 #endif
 
+void commandSystemInformation(char* params){
+  
+  
+  
+}
+
 void commandSystemReinit(char* params){
-  #if defined(USESERIALMONITOR)
-    stringReinit.print(Serial);
-    Serial.println();
+  #if USE_MODULE_SERIALMONITOR == true
+    stringReinit.print(SERIALMONITOR);
+    SERIALMONITOR.println();
   #endif
   initController();
 }
 
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringHeartbeatOnline,"[HEARTBEAT] [ONLINE]");
 #endif
 
 void commandSystemHeartbeat(char* value){
     
     if(heartBeatInProgress==false){
-      #if defined(DEBUGHEARTBEAT)
-        Serial.println("ignored out of sync heartbeat");
+      #if DEBUGHEARTBEAT == true
+        SERIALMONITOR.println("ignored out of sync heartbeat");
       #endif
       return;
     }
   
-    #if defined(DEBUGHEARTBEAT)
+    #if DEBUGHEARTBEAT == true
     if(heartBeatOnline==false){
-      stringHeartbeatOnline.print(Serial);
-      Serial.println();
+      stringHeartbeatOnline.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     }
     #endif
   
@@ -461,14 +489,14 @@ void commandSystemHeartbeat(char* value){
     
 }
 
-#if defined(USESERIALMONITOR)
+#if USE_MODULE_SERIALMONITOR == true
 FLASH_STRING(stringServerLogReceived,"Server received log: ");
 #endif
 
 void commandDataLogReceived(char* logId){
-  #if defined(USESERIALMONITOR)
-    stringServerLogReceived.print(Serial);
-    Serial.println(logId);
+  #if USE_MODULE_SERIALMONITOR == true
+    stringServerLogReceived.print(SERIALMONITOR);
+    SERIALMONITOR.println(logId);
   #endif
 }
 

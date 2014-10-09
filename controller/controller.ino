@@ -1,7 +1,7 @@
 /**
 
 @author Byron DeLamatre <byron@delamatre.com>
-@url https://github.com/bdelamatre/FatRabbitGarden
+@url https://github.com/bdelamatre/Grower
 @about A controller designed for managing and monitoring your garden. Check readme.md
 
 project structure:
@@ -13,87 +13,219 @@ project structure:
 * e_zones            = functions for turning zones on/off
 * f_schedules        = checkSchedules() and related functions. Support for additional schedule types may be added here.
 * g_logs             = functions used for logging
-* u_utilities        = various utility functions
+* t_tests            = commands and functions used for testing the device
+* u_utilities        = various utility functions  
+
+about:
+This firmware has been designed to run on multiple types of Arduino compatabile devices by configuring the options below. This ranges from
+how you are communicating with the Grower server (through another device using Serial or direclty of Ethernet) to how many and what kind
+of sensors and RTC devices you wish to support. You can configure all of these options below, but be aware that you can cause instability
+if you are not sure what you are doing.
   
 **/
 
-/** 
-For non-standard libraries copy submodules included under FatRabbitGarden/libraries/ into your Arduino IDE libraries/ folder. 
-**/
-#include <avr/wdt.h>
+/*********************************************************** 
+
+Libraries
+
+For non-standard libraries copy submodules included under Grower/libraries/ into your Arduino IDE libraries/ folder. 
+
+***********************************************************/
+
+/** Read/Write to EEPROM **/
 #include <EEPROM.h>
-//#include <SD.h>
-#include <Wire.h> 
-#include <Time.h> 
-#include <DS1307RTC.h>
+
+/** Read and write to flash **/
 #include <Flash.h>
+
+/** Read/Write to SD card **/
+//#include <SD.h>
+
+/** Communicate with I2C/TWI devices, such as some sensors and RTCs **/
+#include <Wire.h> 
+
+/** Time functions  **/
+#include <Time.h>
+
+/** Support for DS1307 RTC **/
+#include <DS1307RTC.h>
+
+/** Support for DHT sensors **/
 #include <DHT.h> //DHT by AdaFruit
+
+/** Support for Software Serial interfaces, useful when working with a limited number of serial interfaces **/
 //#include <SoftwareSerial.h> //DHT by AdaFruit
-#include <SPI.h>
-#include <Ethernet.h>
+
+/** Support for SPI, needed if using an Ethernet shield **/
+//#include <SPI.h>
+
+/** Support for Wiznet Ethernet **/
+//#include <Ethernet.h>
+
+/** Wiznet library that provides additional configuration options for Ethernet **/
 //#include <utility/w5100.h>
 
-#define USESERIALMONITOR
-//#define CLIONMONITOR
-#define USEETHERNETCOM
-//#define USESERIALCOM
-//#define USESOFTWARESERIAL
-//#define USESD
-#define USERTCDS1307
 
-#define DS1307_ADDRESS 0x68
+/*********************************************************** 
 
-#define DEBUG
-#define DEBUGETHERNET
-//#define DEBUGSENSORS
-//#define DEBUGSCHEDULE
-//#define DEBUGCONFIG
-#define DEBUGMEM
-//#define DEBUGHEARTBEAT
-//#define DEBUGTIMESYNC
-//#define SETTIME
-//#define MANUALCONFIGf
+General Options
 
+***********************************************************/
+
+/** the command buffer size **/
+const int maxBufferSize = 1512; //best
+//const int maxBufferSize = 1024; //good
+//const int maxBufferSize = 256; //light weight mode (not recommended)
+
+/**
+WARNING, increasing these will allow you to configure more 
+schedules, zones and sensors, but increase the RAM and EEPROM 
+usage. Be careful if increasing these that you stay within your
+system limits, or stability issue will occur.
+**/
+const int maxSchedules = 5;        //how many schedules should this device support
+const int maxZones = 5;            //how many zones should this device support
+const int maxSensors = 6;          //how many sensors should this device support
+const int maxNameLength = 7;       //how many characters can the identifying name of a zone, sensor or schedule
+const int maxParamNameLength = 11; //how many characters can a parameter be
+const int sensorCheckDelay = 5;    //how often (seconds) to poll sensors for data. Setting this lower can cause performance issues but increase real-time monitoring.
+const int heartBeatDelay = 2;      //how often (seconds) to send a heartbeat
+const int heartBeatDelayWait = 28; //how long to wait for a hearbeat response before going offline
+const int timeSyncDelay = 60;      //how long to wait to receive a time sync response
+
+#define SETTIME                    //manualy set system time, useful for debugging without an RTC or NTP access
+#define STOPFORTIMESYNC false
+//#define MANUALCONFIG             //instead of using EEPROM, override the configuration manually in loadManualConfig()
+#define CONFIG_VERSION "2v2"       //when reading from EEPROM, identify saved configurations with this version
+#define CONFIG_START 32            //position in EEPROM to start writing the configuration
+
+
+/*********************************************************** 
+
+Module - Serial Monitor
+
+Will print useful information on specified serial interface. This is useful for debugging. 
+
+***********************************************************/
+
+#define USE_MODULE_SERIALMONITOR true
+
+#define SERIALMONITOR Serial
+#define SERIALMONITOR_BAUD_RATE 115200
+#define DEBUG true //will output basic debugging, must be enabled for all other debugging to work
+#define DEBUGETHERNET false
+#define DEBUGSENSORS true
+#define DEBUGSCHEDULE true
+#define DEBUGCONFIG true
+#define DEBUGMEM true
+#define DEBUGHEARTBEAT true
+#define DEBUGTIMESYNC true
+
+
+/*********************************************************** 
+
+Module - CLI on Serial Monitor
+
+Allows manual interaction with the CLI while monitoring the Serial interface
+
+***********************************************************/
+
+#define USE_MODULE_CLIONSERIALMONITOR true
+
+//do not edit this
+#if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
+  int commandBufferPositionMonitor = 0;
+  boolean commandBufferReadyToProcessMonitor = false;
+  char commandBufferMonitor[maxBufferSize]; 
+#endif
+
+
+/*********************************************************** 
+
+Module - Ethernet Communication
+
+Device will send and receive commands over Ethernet
+
+***********************************************************/
+
+#define USE_MODULE_ETHERNETCOM false
+
+//system variables, do not edit this
+#if USE_MODULE_ETHERNETCOM == true
+  int commandBufferPositionEthernet = 0;
+  boolean commandBufferReadyToProcessEthernet = false;
+  char commandBufferEthernet[maxBufferSize];
+#endif
+
+//define client
+#if USE_MODULE_ETHERNETCOM == true  
+  EthernetClient client;
+#endif
+
+
+/*********************************************************** 
+
+Module - Serial Communication
+
+Device will send and receive commands over Serial interface defined for communication
+
+***********************************************************/
+
+#define USE_MODULE_SERIALCOM true
+
+#define SERIALCOM Serial1 // Teensy++ or Arduino devices with multiple Serial interfaces
+//#define SERIALCOM Serial // ArduinoUno and devices with a single Serial interface
+#define SERIALCOM_BAUD_RATE 115200
+
+//system variables, do not edit this
+#if USE_MODULE_SERIALCOM == true
+  int commandBufferPositionSerial = 0;
+  boolean commandBufferReadyToProcessSerial = false;
+  char commandBufferSerial[maxBufferSize];
+#endif
+
+
+/*********************************************************** 
+
+Module - Serial Communication - Software Serial
+
+If using the SERIALCOM module, you can specify whether SERIALCOM should use the SoftwareSerial library. This is useful when you don't have enough serial interfaces
+
+***********************************************************/
+
+#define USE_MODULE_SERIALCOM_SOFTWARESERIAL false
 //SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
 
-#define CONFIG_VERSION "2v2"
-#define CONFIG_START 32
 
-const char commandStringSystemHeartbeat[]     = "s:hb";
-const char commandStringSystemRestart[]       = "s:restart";
-const char commandStringSystemReinit[]        = "s:init";
-const char commandStringConfigSetTime[]       = "c:time";
-const char commandStringConfigSaveAsId[]      = "c:save-as";
-const char commandStringConfigSave[]          = "c:save";
-const char commandStringConfigResetDefault[]  = "c:reset";
-const char commandStringConfigZone[]          = "c:z";
-const char commandStringConfigZoneReset[]     = "c:z-reset";
-const char commandStringConfigSensor[]        = "c:s";
-const char commandStringConfigSensorReset[]   = "c:s-reset";
-const char commandStringConfigSchedule[]      = "c:sc";
-const char commandStringConfigScheduleReset[] = "c:sc-reset";
-const char commandStringDataLogReceived[]     = "d:received";
+/*********************************************************** 
 
-boolean configInProgress = false;
+Module - Serial Communication - Software Serial
 
-const int sensorCheckDelay = 5;
-unsigned long sensorCheckLast = 0;
+If using a DS1307 RTC
 
-const int heartBeatDelay = 2;
-const int heartBeatDelayWait = 28;
-boolean heartBeatOnline = false;
-boolean heartBeatInProgress = false;
-time_t heartBeatSent;
-time_t heartBeatLast;
+***********************************************************/
+
+#define USE_MODULE_RTCDS1307 false
+//#define DS1307_ADDRESS 0x68 //Wire address for the DS1307 RTC
+
+
+/*********************************************************** 
+
+Module - SD
+
+If using an SD to buffer communications 
+
+***********************************************************/
+
+#define USE_MODULE_SD false
 
 /*
-SD variables
 On the Ethernet Shield, CS is pin 4. Note that even if it's not
 used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 53 on the Mega) must be left as an output or the SD library
 functions will not work.
 */
-#if defined(USESD)
+#if USE_MODULE_SD == true
   const int chipSelect = 4;
   const int hardwareSelect = 14; //Goldilocks
   //const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
@@ -102,63 +234,83 @@ functions will not work.
   SdFile root;
 #endif
 
-//RTC variable
-const unsigned int timeSyncDelay = 60;
+
+/*********************************************************** 
+
+Module - Watchdog
+
+Use the AVR built-in watchdog timer
+
+***********************************************************/
+
+#define USE_MODULE_WATCHDOG false       //use the watchdog timer
+
+#if USE_MODULE_WATCHDOG == true
+  /** Watchdog timer **/
+  #include <avr/wdt.h>
+#endif
+
+
+/*********************************************************** 
+
+Global Variables
+
+Do not edit these for any reason
+
+***********************************************************/
+
+/** commands supported **/
+const char commandStringSystemInfo[]          = "s:info";      //get system information
+const char commandStringSystemHeartbeat[]     = "s:hb";        //send a system heartbeat
+const char commandStringSystemRestart[]       = "s:restart";   //software restart of the device
+const char commandStringSystemReinit[]        = "s:init";      //reinitialize the system without a restart
+const char commandStringConfigSetTime[]       = "c:time";      //sets the system time. will save to RTC if present.
+const char commandStringConfigSaveAsId[]      = "c:save-as";   //sets the id of the configuration. This will be used by the server to determine which config the device is using.
+const char commandStringConfigSave[]          = "c:save";      //save the current configuration
+const char commandStringConfigResetDefault[]  = "c:reset";     //resets the configuration by zeroing out the EEPROM
+const char commandStringConfigZone[]          = "c:z";         //configure a zone using a string of parameters
+const char commandStringConfigZoneReset[]     = "c:z-reset";   //resets a zone by id
+const char commandStringConfigSensor[]        = "c:s";         //configure a sensor using a string of parameters
+const char commandStringConfigSensorReset[]   = "c:s-reset";   //resets a sensor by id
+const char commandStringConfigSchedule[]      = "c:sc";        //configure a schedule using a string of parameters
+const char commandStringConfigScheduleReset[] = "c:sc-reset";  //resets a schedule by id
+const char commandStringDataLogReceived[]     = "d:received";  //indicate that data was received and logged by the server
+const char commandStringTestFactory[]         = "t:factory";   //
+const char commandStringTestHeartbeat[]       = "t:hb";        //
+const char commandStringTestTime[]            = "t:time";      //
+const char commandStringTestRTC[]             = "t:rtc";       //
+const char commandStringTestSD[]              = "t:sd";        //
+const char commandStringTestZones[]           = "t:zones";     //
+const char commandStringTestLoadConfig[]      = "t:config";    //
+
+boolean configInProgress = false;    //will stop various processes while set to true
+
+unsigned long sensorCheckLast = 0;   //the last time we checked for sensor data
+boolean heartBeatOnline = false;     //set to true when a heartbeat response is received within the heartBeatDelayWait period
+boolean heartBeatInProgress = false; //if we are in the middle of waiting for a heartbeat response
+time_t heartBeatSent;                //when the current heartbeat was sent
+time_t heartBeatLast;                //when was the last time we successfully received a heartbeat
+
 boolean timeSyncInProgress = false;
 boolean timeSynced = false;
 time_t timeSyncedDateTime;
 
-//the command buffer
-const int maxBufferSize = 1024;
-
-#if defined(USEETHERNETCOM)
-  int commandBufferPositionEthernet = 0;
-  boolean commandBufferReadyToProcessEthernet = false;
-  char commandBufferEthernet[maxBufferSize];
-#endif
-
-#if defined(USESERIALCOM)
-  int commandBufferPositionSerial = 0;
-  boolean commandBufferReadyToProcessSerial = false;
-  char commandBufferSerial[maxBufferSize];
-#endif
-
-#if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
-  int commandBufferPositionMonitor = 0;
-  boolean commandBufferReadyToProcessMonitor = false;
-  char commandBufferMonitor[maxBufferSize]; 
-#endif
-
-/*
-WARNING, increasing these will allow you to configure more 
-schedules, zones and sensors, but increase the RAM and EEPROM 
-usage. Be careful if increasing these that you stay within your
-system limits, or stability issue will occur.
-*/
-const int maxSchedules = 4; 
-const int maxZones = 4; 
-const int maxSensors = 6;
-const int maxNameLength = 7;
-const int maxParamNameLength = 11;
-
 //schedule structure, managed by config structure
 struct Schedule{
   char name[maxNameLength];
-  int type; //0=off, 1=timer, 2=soil moisture, 3=temperature
-  int zones[maxZones]; //zone id, 0 to maxZones specified
-  int zonesRunType; //0=series, 1=parallel
-  int sensors[maxSensors]; //zone id, 0 to maxSensors specified
-  char timerStartWeekdays[8]; //1-7
-  char timerStartHours[25]; //1-24
-  char timerStartMinutes[61];//1-60
-  //char timerStartSeconds[60];//1-60
-  int valueMin; //will turn zones on when this value is reached by the specified sensors
-  int valueMax; //will turn zones off when this value is reached by the specified sensors
-  int isRunning; //0=no,1=yes
+  int type;                      //0=off, 1=timer, 2=soil moisture, 3=temperature
+  int zones[maxZones];           //zone id, 0 to maxZones specified
+  int zonesRunType;              //0=series, 1=parallel
+  int sensors[maxSensors];       //zone id, 0 to maxSensors specified
+  char timerStartWeekdays[8];    //1-7
+  char timerStartHours[25];      //1-24
+  char timerStartMinutes[61];    //1-60
+  //char timerStartSeconds[60];  //1-60
+  int valueMin;                  //will turn zones on when this value is reached by the specified sensors
+  int valueMax;                  //will turn zones off when this value is reached by the specified sensors
+  int isRunning;                 //0=no,1=yes
 };
-//#endif
 
-//#if !defined(SENSORONLY)
 //zone structure, managed by config structure
 struct Zone{
   char name[maxNameLength];
@@ -187,16 +339,14 @@ struct Sensor{
   unsigned long statusLastLogged;
 };
 
-/**
-This is the main structure that contains the complete configuration for the system.
-**/
+//This is the main structure that contains the complete configuration for the system.
 struct ConfigStore{
   char version[4];
   unsigned long utcOffset;
   char configId[11];
   char deviceId[33];
   char apiKey[13];
-  #if defined(USEETHERNETCOM)
+  #if USE_MODULE_ETHERNETCOM == true
     char server[255];
     unsigned int serverPort;
     byte mac[6];
@@ -212,7 +362,7 @@ struct ConfigStore{
   "0",
   "prop",
   "0",
-  #if defined(USEETHERNETCOM)
+  #if USE_MODULE_ETHERNETCOM == true
   "grower.io",
   8080,
   {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 },
@@ -222,80 +372,84 @@ struct ConfigStore{
 
 void(* restart) (void) = 0; //declare reset function @ address 0\
 
-//EthernetServer server(80);
-  #if defined(USEETHERNETCOM)  
-    EthernetClient client;
-  #endif
+
 // the setup routine runs once when you press reset:
 void setup() {
     
   //start wire
   Wire.begin();
   
-  //if debug serial, we will output debug statements to serial
-  #if defined(USESERIALMONITOR)
-    Serial.begin(9600);
+  #if USE_MODULE_SERIALMONITOR == true
+    //start serial connection for debugging output
+    SERIALMONITOR.begin(SERIALMONITOR_BAUD_RATE);
   #endif
   
-  #if defined(USESERIALCOM)
-    #if defined(USESOFTWARESERIAL)  
-      softSerial.begin(19200);
+  #if USE_MODULE_SERIALCOM == true
+    #if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true  
+      //start software serial port for server communication
+      softSerial.begin(SERIALCOM_BAUD_RATE);
     #else
-      Serial1.begin(19200);
+      //start serial port for server communication
+      SERIALCOM.begin(SERIALCOM_BAUD_RATE);
     #endif
   #endif
   
-  #if defined(DEBUG) && defined(USESERIALMONITOR)  
+  #if DEBUG == true && USE_MODULE_SERIALMONITOR == true  
     printAvailableMemory();
+    //glamour banner
     printBanner();
   #endif
   
-  loadConfig();
-  #if defined(USEETHERNETCOM)
-    initEthernet();
+  loadConfig(); //load configuration from EEPROM
+  #if USE_MODULE_ETHERNETCOM == true
+    initEthernet(); //if using Ethernet for communication
   #endif
-  #if defined(USESD)
-    initSd();  
+  #if USE_MODULE_SD == true
+    initSd(); //if using an SD card for buffering communications
   #endif
-  initRtc();  
-  initController();
+  initRtc(); //iniatilize RTC
+  initController(); //initalize sensors, zones and schedule
   
-  #if defined(DEBUG) && defined(USESERIALMONITOR) 
+  #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true 
     printBreak();
     printAvailableMemory();  
   #endif
   
-  
-  #if defined(USESERIALMONITOR)
+  #if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
     printCommandLineAvailable();
   #endif
 
-  //watchdog, 8 seconds
-  //wdt_enable(WDTO_8S);
+  #if USE_MODULE_WATCHDOG == true
+    //watchdog, 8 seconds
+    wdt_enable(WDTO_8S);
+  #endif
 
 }
 
-FLASH_STRING(stringTimeSync," [TIME] initial sync");
+FLASH_STRING(stringTimeSync,"[TIME] initial sync");
 FLASH_STRING(stringHeartBeatOffline,"[HEARTBEAT] [OFFLINE]");
 
 //  loop - runs over and over again forever:
 void loop(){
       
-  #if defined(USEETHERNETCOM)
+  #if USE_MODULE_ETHERNETCOM == true
+      //read Ethernet interface and process incoming commands
       readEthernetToBuffer(commandBufferEthernet,commandBufferPositionEthernet,commandBufferReadyToProcessEthernet);   
   #endif
   
-  #if defined(USESERIALCOM)
-    #if defined(USESOFTWARESERIAL)  
+  #if USE_MODULE_SERIALCOM == true
+    #if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true
+      //read SoftwareSerial interface and process incoming commands
       readSerialToBuffer(softSerial,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
     #else
-      readSerialToBuffer(Serial1,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
+      //read Serial interface and process incoming commands
+      readSerialToBuffer(SERIALCOM,commandBufferSerial,commandBufferPositionSerial,commandBufferReadyToProcessSerial);
     #endif
   #endif
   
-  #if defined(USESERIALMONITOR) && defined(CLIONMONITOR)
+  #if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
     //if we are using serial monitor, give it it's own command buffer
-    readSerialToBuffer(Serial,commandBufferMonitor,commandBufferPositionMonitor,commandBufferReadyToProcessMonitor);
+    readSerialToBuffer(SERIALMONITOR,commandBufferMonitor,commandBufferPositionMonitor,commandBufferReadyToProcessMonitor);
   #endif
   
   //if we are in configuration mode, prevent running the reset of the script
@@ -307,18 +461,23 @@ void loop(){
   //fix-me: should make this so it isn't dependent on wdt_reset
   //we can't do anything else until the time is synced
   if(timeSynced==false && timeSyncInProgress==true){
-     //Serial.println("not synced");
-     return;
+     #if STOPFORTIMESYNC == true
+       return;
+     #endif
   }else if(timeSynced==false){
     //go ahead and sync time
-    #if defined(USESERIALMONITOR)
-      stringTimeSync.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true
+      stringTimeSync.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
     sendCommand("c:time");
+    SERIALMONITOR.println("Attempting initial time sync");
     return;
   }
-  
-  wdt_reset();
+    
+  #if USE_MODULE_WATCHDOG == true
+    wdt_reset();
+  #endif
   
   //heartbeat determines if the controller is online or offline
   //if the timer has timed out and it is time to send the next heartbeat
@@ -329,31 +488,29 @@ void loop(){
       strcat(buildCommand,configStore.configId);
       sendCommand(buildCommand);
       
-  //heartbeat sent, but we haven't received a response for awhile
   }
   
   //check if the controller is offline
   if(heartBeatOnline == true && now()-heartBeatLast>=(heartBeatDelay+heartBeatDelayWait)){
 
-    #if defined(USERSERIALMONITOR)
+    #if USE_MODULE_SERIALMONITOR == true
       if(heartBeatOnline==true){
-        stringHeartBeatOffline.print(Serial);
+        stringHeartBeatOffline.print(SERIALMONITOR);
       }
     #endif
               
     heartBeatOnline = false;
+    
   }
   
   //this prevents sensors from being checked on every pass
   if(timeSynced==true && (now()-sensorCheckLast)>sensorCheckDelay){
+    
+    //go ahead and reset the sensor check style
     sensorCheckLast = now();
     
     //time has been synced and we can continue with controller functions
     time_t timeLocal = getCurrentTime();
-    
-    //Serial.println(timeLocal.unixtime());
-    //Serial.println("check sensors");
-    
     
     //safety turn off
     //safetyOff(timeLocal);

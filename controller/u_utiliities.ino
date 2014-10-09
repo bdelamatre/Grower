@@ -1,69 +1,67 @@
   
-//#if defined(USESERIALMONITOR) 
+//#if USE_MODULE_SERIALMONITOR == true 
 
-FLASH_STRING(memString,"[DEBUG] [MEMORY] ");
-FLASH_STRING(banner,"|| Fat Rabbit Farm - Garden Controller  ||");
+FLASH_STRING(memString,"[DEBUG] [MEMORY AVAILABLE] ");
+FLASH_STRING(banner,"|| Grower.io - Garden Controller        ||");
 FLASH_STRING(bannerBreak,"==========================================");
 
 void printDateTimeToSerial(time_t t){
-    Serial.print(year(t), DEC);
-    Serial.print('/');
-    if(month(t) < 10) Serial.print("0");
-    Serial.print(month(t), DEC);
-    Serial.print('/');
-    if(day(t) < 10) Serial.print("0");
-    Serial.print(day(t), DEC);
-    Serial.print(' ');
-    if(hour(t) < 10) Serial.print("0");
-    Serial.print(hour(t), DEC);
-    Serial.print(':');
-    if(minute(t) < 10) Serial.print("0");
-    Serial.print(minute(t), DEC);
-    Serial.print(':');
-    if(second(t) < 10) Serial.print("0");
-    Serial.print(second(t), DEC);
+    SERIALMONITOR.print(year(t), DEC);
+    SERIALMONITOR.print('/');
+    if(month(t) < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(month(t), DEC);
+    SERIALMONITOR.print('/');
+    if(day(t) < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(day(t), DEC);
+    SERIALMONITOR.print(' ');
+    if(hour(t) < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(hour(t), DEC);
+    SERIALMONITOR.print(':');
+    if(minute(t) < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(minute(t), DEC);
+    SERIALMONITOR.print(':');
+    if(second(t) < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(second(t), DEC);
 
 }
 
 /*void printDateTimeToSerial(DateTime now){
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    if(now.month() < 10) Serial.print("0");
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    if(now.day() < 10) Serial.print("0");
-    Serial.print(now.day(), DEC);
-    Serial.print(' ');
-    if(now.hour() < 10) Serial.print("0");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    if(now.minute() < 10) Serial.print("0");
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    if(now.second() < 10) Serial.print("0");
-    Serial.print(now.second(), DEC);
+    SERIALMONITOR.print(now.year(), DEC);
+    SERIALMONITOR.print('/');
+    if(now.month() < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(now.month(), DEC);
+    SERIALMONITOR.print('/');
+    if(now.day() < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(now.day(), DEC);
+    SERIALMONITOR.print(' ');
+    if(now.hour() < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(now.hour(), DEC);
+    SERIALMONITOR.print(':');
+    if(now.minute() < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(now.minute(), DEC);
+    SERIALMONITOR.print(':');
+    if(now.second() < 10) SERIALMONITOR.print("0");
+    SERIALMONITOR.print(now.second(), DEC);
 
 }*/
 
 void printCommandLineAvailable(){
-
-  //Serial.println("You may enter commands now. All commands must be terminated with a < (left-carrot).");
-
+  SERIALMONITOR.println("You may enter commands now. All commands must be terminated with a < (left-carrot).");
 }
 
 void printAvailableMemory(){
-      memString.print(Serial);
-      Serial.println(memoryFree());
+      memString.print(SERIALMONITOR);
+      SERIALMONITOR.println(memoryFree());
 }
   
 void printBanner(){
       printBreak();
-      banner.print(Serial);Serial.println();
+      banner.print(SERIALMONITOR);SERIALMONITOR.println();
       printBreak();
 }
 
 void printBreak(){
-    bannerBreak.print(Serial);Serial.println();
+    bannerBreak.print(SERIALMONITOR);SERIALMONITOR.println();
 }
 
 //#endif
@@ -89,12 +87,12 @@ int memoryFree()
   if ((unsigned long)__brkval == 0)
   { 
     freeValue = ((unsigned long)&freeValue) - ((unsigned long)&__bss_end);
-    //       Serial.println("here and there");
+    //       SERIALMONITOR.println("here and there");
   }
   else
   { 
     freeValue = ((unsigned long)&freeValue) - ((unsigned long)__brkval);
-    //      Serial.println("here  2");
+    //      SERIALMONITOR.println("here  2");
   }
 
   return freeValue;

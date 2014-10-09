@@ -18,9 +18,9 @@ void checkSchedule(struct Schedule &checkingSchedule,time_t checkTime){
   }
   
   #if defined(DEBUGSCHEDULE)
-    Serial.print("checking schedule ");
-    Serial.print(checkingSchedule.name);
-    Serial.print("");
+    SERIALMONITOR.print("checking schedule ");
+    SERIALMONITOR.print(checkingSchedule.name);
+    SERIALMONITOR.print("");
   #endif
    
   if(checkingSchedule.type==1){
@@ -47,48 +47,48 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
   int thisHour = hour(adjustedTime);
   int thisMinute = minute(adjustedTime);
  
-  /*Serial.print("days=");
-  Serial.println(checkingSchedule.timerStartWeekdays);
-  Serial.print(",hours=");
-  Serial.println(checkingSchedule.timerStartHours);
-  Serial.print(",minutes=");
-  Serial.println(checkingSchedule.timerStartMinutes);
-  Serial.println();
+  /*SERIALMONITOR.print("days=");
+  SERIALMONITOR.println(checkingSchedule.timerStartWeekdays);
+  SERIALMONITOR.print(",hours=");
+  SERIALMONITOR.println(checkingSchedule.timerStartHours);
+  SERIALMONITOR.print(",minutes=");
+  SERIALMONITOR.println(checkingSchedule.timerStartMinutes);
+  SERIALMONITOR.println();
       
  
-  Serial.println();
-  Serial.print("unix before=");
-  Serial.println(checkTime);
-  Serial.print("unix after");
-  Serial.println(adjustedTime);
-  Serial.println();
-  Serial.print("trying to match:");
-  Serial.print(" d=");
-  Serial.print(thisWeekday);
-  Serial.print(" h=");
-  Serial.print(thisHour);
-  Serial.print(" m=");
-  Serial.print(thisMinute);
-  Serial.println();
-  Serial.print(" day match ");
-  Serial.print(checkingSchedule.timerStartWeekdays[thisWeekday]);
-  Serial.print("=");*/
+  SERIALMONITOR.println();
+  SERIALMONITOR.print("unix before=");
+  SERIALMONITOR.println(checkTime);
+  SERIALMONITOR.print("unix after");
+  SERIALMONITOR.println(adjustedTime);
+  SERIALMONITOR.println();
+  SERIALMONITOR.print("trying to match:");
+  SERIALMONITOR.print(" d=");
+  SERIALMONITOR.print(thisWeekday);
+  SERIALMONITOR.print(" h=");
+  SERIALMONITOR.print(thisHour);
+  SERIALMONITOR.print(" m=");
+  SERIALMONITOR.print(thisMinute);
+  SERIALMONITOR.println();
+  SERIALMONITOR.print(" day match ");
+  SERIALMONITOR.print(checkingSchedule.timerStartWeekdays[thisWeekday]);
+  SERIALMONITOR.print("=");*/
   
   //check if to turn on
   if(checkingSchedule.timerStartWeekdays[thisWeekday-1]==49){
-    //Serial.print(thisWeekday);
-    //Serial.print(", hour match=");
+    //SERIALMONITOR.print(thisWeekday);
+    //SERIALMONITOR.print(", hour match=");
     //day matches
     if(checkingSchedule.timerStartHours[thisHour-1]==49){
-      //Serial.print(thisHour);
-      //Serial.print(", minute match=");
+      //SERIALMONITOR.print(thisHour);
+      //SERIALMONITOR.print(", minute match=");
       //hour matches
       if(checkingSchedule.timerStartMinutes[thisMinute-1]==49){
         //minute matches
         //turn schedule on
         run = 1;
-        //Serial.print(thisMinute);
-        //Serial.print(" success!");
+        //SERIALMONITOR.print(thisMinute);
+        //SERIALMONITOR.print(" success!");
 
       }
 
@@ -96,9 +96,9 @@ void checkScheduleTimer(struct Schedule &checkingSchedule,time_t checkTime){
 
   }
   
-  Serial.println();
+  SERIALMONITOR.println();
   
-  //Serial.println();
+  //SERIALMONITOR.println();
   
   int wasRunning = checkingSchedule.isRunning;
     
@@ -140,8 +140,8 @@ int checkScheduleSoilMoisture(struct Schedule &checkingSchedule, time_t checkTim
    }
    
   #if defined(DEBUGSCHEDULE)
-    Serial.print("soil moisture=");
-    Serial.println(soilMoisture);
+    SERIALMONITOR.print("soil moisture=");
+    SERIALMONITOR.println(soilMoisture);
   #endif
   
   int wasRunning = checkingSchedule.isRunning;

@@ -48,7 +48,7 @@ void getIdsFromValue(int resultArray[],int arrayLength, String value,char delimi
                 
         resultArray[lastPosition] = thisParam.toInt();
         if(shiftValues==true){
-          //Serial.println("shifting up one");
+          //SERIALMONITOR.println("shifting up one");
           resultArray[lastPosition]++;  
         }
         lastPosition++;
@@ -66,10 +66,10 @@ FLASH_STRING(stringDefault," DEFAULT");
 
 void loadConfig(){ 
     
-  #if defined DEBUG
-    stringConfig.print(Serial);
-    Serial.print(CONFIG_VERSION);
-    stringDot.print(Serial);
+  #if DEBUG == true
+    stringConfig.print(SERIALMONITOR);
+    SERIALMONITOR.print(CONFIG_VERSION);
+    stringDot.print(SERIALMONITOR);
   #endif
   
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
@@ -82,25 +82,25 @@ void loadConfig(){
       *((char*)&configStore + t) = EEPROM.read(CONFIG_START + t);
     }
     
-    #if defined DEBUG
-      Serial.print(configSize);
-      stringBytes.print(Serial);
-      stringOk2.print(Serial);
-      stringIdEquals.print(Serial);
-      Serial.println(configStore.configId);
+    #if DEBUG == true
+      SERIALMONITOR.print(configSize);
+      stringBytes.print(SERIALMONITOR);
+      stringOk2.print(SERIALMONITOR);
+      stringIdEquals.print(SERIALMONITOR);
+      SERIALMONITOR.println(configStore.configId);
     #endif
   }else{
     
-    #if defined DEBUG
-      stringDefault.print(Serial);
-      Serial.println();
+    #if DEBUG == true
+      stringDefault.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
   
   }
   
 }
 
-#if defined(USESERIALMONITOR)  
+#if USE_MODULE_SERIALMONITOR == true  
 FLASH_STRING(stringSaveConfigWriting,"Writing ");
 FLASH_STRING(stringSaveConfigWritingCurrent,"Current configuration saved to EEPROM.");
 FLASH_STRING(stringSaveConfigWritingDone," done!");
@@ -108,16 +108,16 @@ FLASH_STRING(stringConfigSaved,"Current configuration saved to EEPROM.");
 FLASH_STRING(stringConfigSaveAsIdChanged,"Configuration ID changed from ");
 FLASH_STRING(stringConfigSaveAsIdTo," to ");
 FLASH_STRING(stringResettingDefault,"Resetting to default.");
-FLASH_STRING(stringConfigModeEnded,"config mode ended");
-FLASH_STRING(stringConfigModeStarted,"config mode started");
+FLASH_STRING(stringConfigModeEnded,"Config mode ended");
+FLASH_STRING(stringConfigModeStarted,"Config mode started");
 #endif
 
 void saveConfig() {
   
-    #if defined(USESERIALMONITOR)  
-      stringSaveConfigWriting.print(Serial);
-      Serial.print(sizeof(configStore));
-      stringSaveConfigWritingCurrent.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true  
+      stringSaveConfigWriting.print(SERIALMONITOR);
+      SERIALMONITOR.print(sizeof(configStore));
+      stringSaveConfigWritingCurrent.print(SERIALMONITOR);
     #endif
     
     //EEPROM.writeBlock(CONFIG_START, configStore);
@@ -127,10 +127,11 @@ void saveConfig() {
 
     configInProgress=false;
     
-    #if defined(USESERIALMONITOR)  
-      stringSaveConfigWritingDone.print(Serial);
-      Serial.println();
-      stringConfigModeEnded.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true  
+      stringSaveConfigWritingDone.print(SERIALMONITOR);
+      SERIALMONITOR.println();
+      stringConfigModeEnded.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
     
 }
@@ -145,41 +146,42 @@ void resetDefaultConfig(){
 
 void commandConfigSave(char* logId){
   saveConfig();
-  #if defined(USESERIALMONITOR)  
-    stringConfigSaved.print(Serial);
-    Serial.println();
+  #if USE_MODULE_SERIALMONITOR == true  
+    stringConfigSaved.print(SERIALMONITOR);
+    SERIALMONITOR.println();
   #endif
 }
 
 
 void commandConfigSaveAsId(char* params){
     
-  #if defined(USESERIALMONITOR)  
-    stringConfigSaveAsIdChanged.print(Serial);
-    Serial.print(configStore.configId);
-    stringConfigSaveAsIdTo.print(Serial);
+  #if USE_MODULE_SERIALMONITOR == true  
+    stringConfigSaveAsIdChanged.print(SERIALMONITOR);
+    SERIALMONITOR.print(configStore.configId);
+    stringConfigSaveAsIdTo.print(SERIALMONITOR);
   #endif
   
   char* id = getParamByName(params,fieldId);
   strcpy(configStore.configId,id);
   configInProgress = true;
   
-  #if defined(USESERIALMONITOR)  
-    Serial.println(id);
-    stringConfigModeStarted.print(Serial);
+  #if USE_MODULE_SERIALMONITOR == true  
+    SERIALMONITOR.println(id);
+    stringConfigModeStarted.print(SERIALMONITOR);
+    SERIALMONITOR.println();
   #endif
   
 }
 
 void commandConfigResetDefault(char* params){
-  #if defined(USESERIALMONITOR)  
-    stringResettingDefault.print(Serial);
-    Serial.println();
+  #if USE_MODULE_SERIALMONITOR == true  
+    stringResettingDefault.print(SERIALMONITOR);
+    SERIALMONITOR.println();
   #endif
   resetDefaultConfig();
 }
 
-#if defined(USESERIALMONITOR)  
+#if USE_MODULE_SERIALMONITOR == true  
 //FLASH_STRING(stringSettingTime,"Setting time from unixtime ");
 FLASH_STRING(stringAdjustingRTC,"Adjusting RTC to ");
 FLASH_STRING(stringTimeSynced,"Time synced to ");
@@ -200,24 +202,24 @@ time_t commandConfigSetTime(unsigned long int timeunix){
   
     //if the RTC is running, lets go ahead and adjust the clock
     if (RTC.chipPresent()) {
-      #if defined(USESERIALMONITOR)  
-        stringAdjustingRTC.print(Serial);
+      #if USE_MODULE_SERIALMONITOR == true  
+        stringAdjustingRTC.print(SERIALMONITOR);
         printDateTimeToSerial(thisDateTime);
-        Serial.println();
+        SERIALMONITOR.println();
       #endif
       RTC.set(thisDateTime); 
     }
     
-    #if defined(USESERIALMONITOR)  
-      stringTimeSynced.print(Serial);
+    #if USE_MODULE_SERIALMONITOR == true  
+      stringTimeSynced.print(SERIALMONITOR);
       printDateTimeToSerial(thisDateTime);
-      Serial.println();
+      SERIALMONITOR.println();
     #endif
     
     return thisDateTime;
 }
 
-#if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
+#if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
 FLASH_STRING(stringInvalidId," isn't a valid id ");
 FLASH_STRING(stringUpdatingId,"Updating config for id ");
 FLASH_STRING(stringResettingId,"Resetting config for id ");
@@ -229,23 +231,23 @@ FLASH_STRING(stringInvalid," invalid");
 //FLASH_STRING(stringResettingId," resetting id");
 #endif
 
-#if !defined(SENSORONLY)
+#if SENSORONLY == false
 void commandConfigZone(char* params){
   
   //get id
   int zoneId = atoi(getIdFromParams(params));
   
   if(zoneId<0 || zoneId>maxZones){
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      Serial.print(zoneId);
-      stringInvalidId.print(Serial);
-      Serial.println();
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      SERIALMONITOR.print(zoneId);
+      stringInvalidId.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
     return;
   }else{
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      stringUpdatingId.print(Serial);
-      Serial.println(zoneId);
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      stringUpdatingId.print(SERIALMONITOR);
+      SERIALMONITOR.println(zoneId);
     #endif;
   } 
     
@@ -269,18 +271,18 @@ void commandConfigZone(char* params){
       }else if(strcmp(name,fieldOverrideOn)==0){
         configStore.zones[zoneId].overrideOn = atoi(value);
       }else{
-        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-          Serial.print(name);
-          stringInvalidProperty.print(Serial);
+        #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+          SERIALMONITOR.print(name);
+          stringInvalidProperty.print(SERIALMONITOR);
         #endif
         continue;
       }
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringChanged.print(Serial);
-        Serial.print(name);
-        stringChangingTo.print(Serial);
-        Serial.println(value);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringChanged.print(SERIALMONITOR);
+        SERIALMONITOR.print(name);
+        stringChangingTo.print(SERIALMONITOR);
+        SERIALMONITOR.println(value);
       #endif
       
    }
@@ -304,9 +306,9 @@ void commandConfigZoneReset(char* params){
     
    if(thisId > -1 && thisId < maxZones){
      
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringResettingId.print(Serial);
-        Serial.println(thisId);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringResettingId.print(SERIALMONITOR);
+        SERIALMONITOR.println(thisId);
       #endif
       
       strncpy(configStore.zones[thisId].name,blankName,maxNameLength);
@@ -316,9 +318,9 @@ void commandConfigZoneReset(char* params){
       configStore.zones[thisId].overrideOn = -1;
     }else{
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print(thisId);
-        stringInvalid.print(Serial);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        SERIALMONITOR.print(thisId);
+        stringInvalid.print(SERIALMONITOR);
       #endif
       
     }
@@ -335,16 +337,16 @@ void commandConfigSensor(char* params){
   int sensorId = atoi(getIdFromParams(params));
 
   if(sensorId<0 || sensorId>maxSensors){
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      Serial.print(sensorId);
-      stringInvalidId.print(Serial);
-      Serial.println();
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      SERIALMONITOR.print(sensorId);
+      stringInvalidId.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
     return;
   }else{
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      stringUpdatingId.print(Serial);
-      Serial.println(sensorId);
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      stringUpdatingId.print(SERIALMONITOR);
+      SERIALMONITOR.println(sensorId);
     #endif
   } 
   
@@ -370,18 +372,18 @@ void commandConfigSensor(char* params){
       }else if(strcmp(name,fieldFrequencyLogSeconds)==0){
         configStore.sensors[sensorId].frequencyLogSeconds = atoi(value);
       }else{
-        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-          Serial.print(name);
-          stringInvalidProperty.print(Serial);
+        #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+          SERIALMONITOR.print(name);
+          stringInvalidProperty.print(SERIALMONITOR);
         #endif
         continue;
       }
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringChanging.print(Serial);
-        Serial.print(name);
-        stringChangingTo.print(Serial);
-        Serial.println(value);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringChanging.print(SERIALMONITOR);
+        SERIALMONITOR.print(name);
+        stringChangingTo.print(SERIALMONITOR);
+        SERIALMONITOR.println(value);
       #endif
       
    }   
@@ -406,9 +408,9 @@ void commandConfigSensorReset(char* params){
       
     if(thisId>=0 && thisId<maxSensors){
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringResettingId.print(Serial);
-        Serial.println(thisId);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringResettingId.print(SERIALMONITOR);
+        SERIALMONITOR.println(thisId);
       #endif
       
       strncpy(configStore.sensors[thisId].name,blankName,maxNameLength);
@@ -420,9 +422,9 @@ void commandConfigSensorReset(char* params){
       
     }else{
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print(thisId);
-        stringInvalid.print(Serial);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        SERIALMONITOR.print(thisId);
+        stringInvalid.print(SERIALMONITOR);
       #endif
       
     }
@@ -437,16 +439,16 @@ void commandConfigSchedule(char* params){
   int scheduleId = atoi(getIdFromParams(params));
     
   if(scheduleId<0 || scheduleId>maxZones){
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      Serial.print(scheduleId);
-      stringInvalidId.print(Serial);
-      Serial.println();
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      SERIALMONITOR.print(scheduleId);
+      stringInvalidId.print(SERIALMONITOR);
+      SERIALMONITOR.println();
     #endif
     return;
   }else{
-    #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-      stringUpdatingId.print(Serial);
-      Serial.println(scheduleId);
+    #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+      stringUpdatingId.print(SERIALMONITOR);
+      SERIALMONITOR.println(scheduleId);
     #endif
   } 
   
@@ -475,30 +477,30 @@ void commandConfigSchedule(char* params){
           
           for(int i=0;i<maxZones;i++){
             
-            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-               Serial.print(" set zone position ");
-               Serial.print(i);
+            #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+               SERIALMONITOR.print(" set zone position ");
+               SERIALMONITOR.print(i);
              #endif
               
             if(zoneIds[i]>-1){
                 configStore.schedules[scheduleId].zones[i] = zoneIds[i];
                 
-                #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-                  Serial.print(" to zone id ");
-                  Serial.print(configStore.schedules[scheduleId].zones[i]);
+                #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+                  SERIALMONITOR.print(" to zone id ");
+                  SERIALMONITOR.print(configStore.schedules[scheduleId].zones[i]);
                 #endif
             }else{
                configStore.schedules[scheduleId].zones[i] = -1;
                
-              #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-                 Serial.print(" to null ");
+              #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+                 SERIALMONITOR.print(" to null ");
                #endif
             }
             
-            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-              Serial.print(" from ");
-              Serial.print(zoneIds[i]); 
-              Serial.println();
+            #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+              SERIALMONITOR.print(" from ");
+              SERIALMONITOR.print(zoneIds[i]); 
+              SERIALMONITOR.println();
             #endif
             
           }
@@ -517,30 +519,30 @@ void commandConfigSchedule(char* params){
           
           for(int i=0;i<maxSensors;i++){
             
-             #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-               Serial.print(" set sensor position ");
-               Serial.print(i);
+             #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+               SERIALMONITOR.print(" set sensor position ");
+               SERIALMONITOR.print(i);
              #endif
              
             if(sensorIds[i]>-1){
                 configStore.schedules[scheduleId].sensors[i] = sensorIds[i];
                 
-                #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-                  Serial.print(" set to sensor id ");
-                  Serial.print(configStore.schedules[scheduleId].sensors[i]);
+                #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+                  SERIALMONITOR.print(" set to sensor id ");
+                  SERIALMONITOR.print(configStore.schedules[scheduleId].sensors[i]);
                 #endif
             }else{
                configStore.schedules[scheduleId].sensors[i] = -1;
                
-               #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-                 Serial.print(" to null ");
+               #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+                 SERIALMONITOR.print(" to null ");
                #endif
             }
             
-            #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-              Serial.print(" from ");
-              Serial.print(sensorIds[i]);     
-              Serial.println();
+            #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+              SERIALMONITOR.print(" from ");
+              SERIALMONITOR.print(sensorIds[i]);     
+              SERIALMONITOR.println();
             #endif
             
           }
@@ -575,18 +577,18 @@ void commandConfigSchedule(char* params){
       }else if(strcmp(name,fieldValueMax)==0){ 
         configStore.schedules[scheduleId].valueMax = atoi(value);
       }else{
-        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-          Serial.print(name);
-          stringInvalidProperty.print(Serial);
+        #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+          SERIALMONITOR.print(name);
+          stringInvalidProperty.print(SERIALMONITOR);
         #endif
         continue;
       }
    
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringChanging.print(Serial);
-        Serial.print(name);
-        stringChangingTo.print(Serial);
-        Serial.println(value);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringChanging.print(SERIALMONITOR);
+        SERIALMONITOR.print(name);
+        stringChangingTo.print(SERIALMONITOR);
+        SERIALMONITOR.println(value);
       #endif
    
    }
@@ -611,9 +613,9 @@ void commandConfigScheduleReset(char* params){
     
     if(thisId>=0 && thisId<maxSchedules){
       
-        #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        stringResettingId.print(Serial);
-          Serial.println(thisId);
+        #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        stringResettingId.print(SERIALMONITOR);
+          SERIALMONITOR.println(thisId);
         #endif
       
         strncpy(configStore.schedules[thisId].name,blankName,maxNameLength);
@@ -645,9 +647,9 @@ void commandConfigScheduleReset(char* params){
         configStore.schedules[thisId].valueMax = 0;
     }else{
       
-      #if defined(USESERIALMONITOR) && defined(DEBUGCONFIG)
-        Serial.print(thisId);
-        stringInvalid.print(Serial);
+      #if USE_MODULE_SERIALMONITOR == true && DEBUGCONFIG == true
+        SERIALMONITOR.print(thisId);
+        stringInvalid.print(SERIALMONITOR);
       #endif
       
     }
