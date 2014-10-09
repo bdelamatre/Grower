@@ -144,42 +144,46 @@ void initSd(){
 }
 #endif
 
-#if USE_MODULE_SERIALMONITOR == true 
-FLASH_STRING(stringInitRtc,"|| RTC...");
-FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
-FLASH_STRING(stringFound,"FOUND");  
-//FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
-#endif
+#if USE_MODULE_DS1307RTC == true
 
-void initRtc(){
-
-  //initialize clock
   #if USE_MODULE_SERIALMONITOR == true 
-    stringInitRtc.print(SERIALMONITOR);
+  FLASH_STRING(stringInitRtc,"|| RTC...");
+  FLASH_STRING(stringNotAvailable,"NOT AVAILABLE");  
+  FLASH_STRING(stringFound,"FOUND");  
+  //FLASH_STRING(stringManuallySettingTime,"Manually setting to compile time...");  
   #endif
   
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+  void initRtc(){
   
-  if (timeStatus() != timeSet){ 
+    //initialize clock
     #if USE_MODULE_SERIALMONITOR == true 
-       stringNotAvailable.print(SERIALMONITOR);
+      stringInitRtc.print(SERIALMONITOR);
     #endif
-  }else{
-    #if USE_MODULE_SERIALMONITOR == true 
-       stringFound.print(SERIALMONITOR);
+    
+    setSyncProvider(RTC.get);   // the function to get the time from the RTC
+    
+    if (timeStatus() != timeSet){ 
+      #if USE_MODULE_SERIALMONITOR == true 
+         stringNotAvailable.print(SERIALMONITOR);
+      #endif
+    }else{
+      #if USE_MODULE_SERIALMONITOR == true 
+         stringFound.print(SERIALMONITOR);
+      #endif
+      timeSyncedDateTime = now();
+    }
+    
+    #if DEBUG == true && USE_MODULE_SERIALMONITOR == true  
+      stringOk.print(SERIALMONITOR);
+      stringBracketLeft.print(SERIALMONITOR);
+      printDateTimeToSerial(timeSyncedDateTime);
+      SERIALMONITOR.print(")");
+      SERIALMONITOR.println();
     #endif
-    timeSyncedDateTime = now();
+     
   }
-  
-  #if DEBUG == true && USE_MODULE_SERIALMONITOR == true  
-    stringOk.print(SERIALMONITOR);
-    stringBracketLeft.print(SERIALMONITOR);
-    printDateTimeToSerial(timeSyncedDateTime);
-    SERIALMONITOR.print(")");
-    SERIALMONITOR.println();
-  #endif
-   
-}
+
+#endif
 
 #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true  
 FLASH_STRING(stringErrorSync,"error: time hasn't been synced yet");

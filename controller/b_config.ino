@@ -201,6 +201,7 @@ time_t commandConfigSetTime(unsigned long int timeunix){
     timeSyncedDateTime = thisDateTime;
   
     //if the RTC is running, lets go ahead and adjust the clock
+    #if USE_MODULE_DS1307RTC == true
     if (RTC.chipPresent()) {
       #if USE_MODULE_SERIALMONITOR == true  
         stringAdjustingRTC.print(SERIALMONITOR);
@@ -209,6 +210,7 @@ time_t commandConfigSetTime(unsigned long int timeunix){
       #endif
       RTC.set(thisDateTime); 
     }
+    #endif
     
     #if USE_MODULE_SERIALMONITOR == true  
       stringTimeSynced.print(SERIALMONITOR);

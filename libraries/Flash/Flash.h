@@ -17,6 +17,8 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifndef __FLASH_H__
+#define __FLASH_H__
 
 #include <avr/pgmspace.h>
 #if ARDUINO >= 100
@@ -25,7 +27,7 @@
 #include "WProgram.h"
 #endif
 
-#define FLASH_LIBRARY_VERSION 4
+#define FLASH_LIBRARY_VERSION 5
 
 // Use these macros to define your flash-based data structures
 // Example: FLASH_STRING(str, "Four score and seven years ago");
@@ -228,3 +230,4 @@ inline Print &operator <<(Print &stream, const _FLASH_TABLE<T> &printable)
 inline Print &operator <<(Print &stream, const _FLASH_STRING_ARRAY &printable) 
 { printable.print(stream); return stream; }
 
+#endif // def __FLASH_H__

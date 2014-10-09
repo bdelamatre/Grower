@@ -8,126 +8,6 @@ FLASH_STRING(stringWith," ,paramater= ");
 FLASH_STRING(stringUnrecognizedCommand,"[ERROR] Unrecognized command: ");
 FLASH_STRING(stringBufferOver,"buffer overflowing");
 #endif
-  
-
-#if USE_MODULE_ETHERNETCOM == true  
-void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
-  
-  if((bufferPosition-2)>=maxBufferSize){
-    #if USE_MODULE_SERIALMONITOR == true
-      stringBufferOver.print(SERIALMONITOR);
-    #endif
-    //memset(commandBuffer,0,maxBufferSize);
-    //fix-me: we need to do something better here
-    restart();
-    return;
-  }
-      
-  boolean currentLineIsBlank = true;    
-  boolean foundHeader = false;
-  boolean foundBody = false;
-
-  while(client && client.connected()){
-    
-    if(client.available()){
-  
-        char c = client.read();
-        
-        #if DEBUGETHERNET == true
-          SERIALMONITOR.print(c);
-        #endif
-        
-        if(c == '\n' && currentLineIsBlank==true){
-          
-          if(foundHeader==false){
-            foundHeader=true;
-          }else if(foundBody==false){
-            foundBody=true;
-            client.stop();
-            break;
-          }else{
-            client.stop();
-            break;
-          }
-          
-        }
-        
-        if(foundHeader==true && c != '\n'){
-                  
-          //done building command
-          if (c == '^') {
-            readyToProcess = true;
-            client.stop();
-            break;
-          }else{
-            //SERIALMONITOR.print(c);
-            commandBuffer[bufferPosition] = c;
-            bufferPosition++;
-          }
-          
-        }
-        
-        if (c == '\n') {
-          currentLineIsBlank = true;
-        }else if (c != '\r') {
-          // you've gotten a character on the current line
-          currentLineIsBlank = false;
-        }
-        
-      }
-   
-    }
-  
-  //process the command buffer
-  if(readyToProcess==true){
-    #if USE_MODULE_WATCHDOG == true
-      //go ahead and reset the watchdog if the buffer is ready to process
-      wdt_reset();
-    #endif
-    //process commands in the buffer
-    processBuffer(commandBuffer);
-    //fix-me: this shouldn't be necessary because of strtok
-    //reset the memory of the buffer
-    memset(commandBuffer,0,maxBufferSize);
-    //reset the buffer position
-    bufferPosition = 0;
-    //do not process the buffer again
-    readyToProcess = false;
-  }
-  
-} 
-#endif
-  
-  
-/*void readSerialToBuffer(SoftwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
-  
-  if((bufferPosition-2)>=maxBufferSize){
-    #if USE_MODULE_SERIALMONITOR == true
-      SERIALMONITOR.println("buffer overflowing");
-    #endif
-    //memset(commandBuffer,0,maxBufferSize);
-    //fix-me: we need to do something better here
-    restart();
-    return;
-  }
-
-  char inChar;
-  
-  while(serial.available()>0){
-    
-    inChar = serial.read(); 
-        
-    //done building command
-    if (inChar == '^') {
-      readyToProcess = true;
-      return;
-    }else{
-      commandBuffer[bufferPosition] = inChar;
-      bufferPosition++;
-    }
-  }  
-  
-}*/  
 
 //void readSerialToBuffer(HardwareSerial &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
 void readSerialToBuffer(Stream &serial, char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
@@ -147,18 +27,18 @@ void readSerialToBuffer(Stream &serial, char* commandBuffer, int &bufferPosition
   while(serial.available()>0){
     
     inChar = serial.read(); 
-        
+            
     //done building command
     if (inChar == '^') {
       readyToProcess = true;
       break;
-    }else{
+    }else if(inChar != 0){
       commandBuffer[bufferPosition] = inChar;
       bufferPosition++;
     }
   }  
   
-    //process the command buffer
+  //process the command buffer
   if(readyToProcess==true){
     
     #if USE_MODULE_WATCHDOG == true
@@ -179,10 +59,96 @@ void readSerialToBuffer(Stream &serial, char* commandBuffer, int &bufferPosition
   
   
 }
+
+#if USE_MODULE_ETHERNETCOM == true  
+
+  void readEthernetToBuffer(char* commandBuffer, int &bufferPosition, boolean &readyToProcess){
+    
+    if((bufferPosition-2)>=maxBufferSize){
+      #if USE_MODULE_SERIALMONITOR == true
+        stringBufferOver.print(SERIALMONITOR);
+      #endif
+      //memset(commandBuffer,0,maxBufferSize);
+      //fix-me: we need to do something better here
+      restart();
+      return;
+    }
+        
+    boolean currentLineIsBlank = true;    
+    boolean foundHeader = false;
+    boolean foundBody = false;
   
-
-
-
+    while(client && client.connected()){
+      
+      if(client.available()){
+    
+          char c = client.read();
+          
+          #if DEBUGETHERNET == true
+            SERIALMONITOR.print(c);
+          #endif
+          
+          if(c == '\n' && currentLineIsBlank==true){
+            
+            if(foundHeader==false){
+              foundHeader=true;
+            }else if(foundBody==false){
+              foundBody=true;
+              client.stop();
+              break;
+            }else{
+              client.stop();
+              break;
+            }
+            
+          }
+          
+          if(foundHeader==true && c != '\n'){
+                    
+            //done building command
+            if (c == '^') {
+              readyToProcess = true;
+              client.stop();
+              break;
+            }else{
+              //SERIALMONITOR.print(c);
+              commandBuffer[bufferPosition] = c;
+              bufferPosition++;
+            }
+            
+          }
+          
+          if (c == '\n') {
+            currentLineIsBlank = true;
+          }else if (c != '\r') {
+            // you've gotten a character on the current line
+            currentLineIsBlank = false;
+          }
+          
+        }
+     
+      }
+    
+    //process the command buffer
+    if(readyToProcess==true){
+      #if USE_MODULE_WATCHDOG == true
+        //go ahead and reset the watchdog if the buffer is ready to process
+        wdt_reset();
+      #endif
+      //process commands in the buffer
+      processBuffer(commandBuffer);
+      //fix-me: this shouldn't be necessary because of strtok
+      //reset the memory of the buffer
+      memset(commandBuffer,0,maxBufferSize);
+      //reset the buffer position
+      bufferPosition = 0;
+      //do not process the buffer again
+      readyToProcess = false;
+    }
+    
+  } 
+  
+#endif
 
 void processBuffer(char* commandBuffer){
   

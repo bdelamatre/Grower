@@ -26,7 +26,7 @@ if you are not sure what you are doing.
 
 /*********************************************************** 
 
-Libraries
+Global Libraries
 
 For non-standard libraries copy submodules included under Grower/libraries/ into your Arduino IDE libraries/ folder. 
 
@@ -36,46 +36,34 @@ For non-standard libraries copy submodules included under Grower/libraries/ into
 #include <EEPROM.h>
 
 /** Read and write to flash **/
-#include <Flash.h>
-
-/** Read/Write to SD card **/
-//#include <SD.h>
+#include <Flash.h> //check under ../libraries for this library
 
 /** Communicate with I2C/TWI devices, such as some sensors and RTCs **/
 #include <Wire.h> 
 
 /** Time functions  **/
-#include <Time.h>
-
-/** Support for DS1307 RTC **/
-#include <DS1307RTC.h>
+#include <Time.h> //check under ../libraries for this library
 
 /** Support for DHT sensors **/
-#include <DHT.h> //DHT by AdaFruit
-
-/** Support for Software Serial interfaces, useful when working with a limited number of serial interfaces **/
-//#include <SoftwareSerial.h> //DHT by AdaFruit
-
-/** Support for SPI, needed if using an Ethernet shield **/
-//#include <SPI.h>
-
-/** Support for Wiznet Ethernet **/
-//#include <Ethernet.h>
-
-/** Wiznet library that provides additional configuration options for Ethernet **/
-//#include <utility/w5100.h>
+#include <DHT.h> //check under ../libraries for this library
 
 
 /*********************************************************** 
 
-General Options
+Global Options
 
 ***********************************************************/
 
+#define SETTIME                    //manualy set system time, useful for debugging without an RTC or NTP access
+#define STOPFORTIMESYNC false      //if testing the system without time sync
+//#define MANUALCONFIG             //instead of using EEPROM, override the configuration manually in loadManualConfig()
+#define CONFIG_VERSION "2v2"       //when reading from EEPROM, identify saved configurations with this version
+#define CONFIG_START 32            //position in EEPROM to start writing the configuration
+
 /** the command buffer size **/
-const int maxBufferSize = 1512; //best
-//const int maxBufferSize = 1024; //good
-//const int maxBufferSize = 256; //light weight mode (not recommended)
+//const int maxBufferSize = 1512;     //best (requires more memmory)
+const int maxBufferSize = 1024;     //good (stable)
+//const int maxBufferSize = 256;      //light weight mode (not recommended, except where memmory is limited)
 
 /**
 WARNING, increasing these will allow you to configure more 
@@ -87,17 +75,11 @@ const int maxSchedules = 5;        //how many schedules should this device suppo
 const int maxZones = 5;            //how many zones should this device support
 const int maxSensors = 6;          //how many sensors should this device support
 const int maxNameLength = 7;       //how many characters can the identifying name of a zone, sensor or schedule
-const int maxParamNameLength = 11; //how many characters can a parameter be
+const int maxParamNameLength = 11; //how many characters long can a parameter name be
 const int sensorCheckDelay = 5;    //how often (seconds) to poll sensors for data. Setting this lower can cause performance issues but increase real-time monitoring.
 const int heartBeatDelay = 2;      //how often (seconds) to send a heartbeat
 const int heartBeatDelayWait = 28; //how long to wait for a hearbeat response before going offline
 const int timeSyncDelay = 60;      //how long to wait to receive a time sync response
-
-#define SETTIME                    //manualy set system time, useful for debugging without an RTC or NTP access
-#define STOPFORTIMESYNC false
-//#define MANUALCONFIG             //instead of using EEPROM, override the configuration manually in loadManualConfig()
-#define CONFIG_VERSION "2v2"       //when reading from EEPROM, identify saved configurations with this version
-#define CONFIG_START 32            //position in EEPROM to start writing the configuration
 
 
 /*********************************************************** 
@@ -110,14 +92,15 @@ Will print useful information on specified serial interface. This is useful for 
 
 #define USE_MODULE_SERIALMONITOR true
 
-#define SERIALMONITOR Serial
-#define SERIALMONITOR_BAUD_RATE 115200
-#define DEBUG true //will output basic debugging, must be enabled for all other debugging to work
+
+#define SERIALMONITOR Serial             //if using the Arduino IDE, this should be the Serial port used by the Serial Monitor
+#define SERIALMONITOR_BAUD_RATE 115200   //set to whatever speed you prefer to use when monitoring
+#define DEBUG true                       //will output basic debugging, must be enabled for all other debugging to work
 #define DEBUGETHERNET false
 #define DEBUGSENSORS true
 #define DEBUGSCHEDULE true
 #define DEBUGCONFIG true
-#define DEBUGMEM true
+#define DEBUGMEM true                    //output memory usage to troubleshoot utilization issues
 #define DEBUGHEARTBEAT true
 #define DEBUGTIMESYNC true
 
@@ -132,8 +115,9 @@ Allows manual interaction with the CLI while monitoring the Serial interface
 
 #define USE_MODULE_CLIONSERIALMONITOR true
 
-//do not edit this
+
 #if USE_MODULE_SERIALMONITOR == true && USE_MODULE_CLIONSERIALMONITOR == true
+  //do not edit these, system variables
   int commandBufferPositionMonitor = 0;
   boolean commandBufferReadyToProcessMonitor = false;
   char commandBufferMonitor[maxBufferSize]; 
@@ -150,16 +134,40 @@ Device will send and receive commands over Ethernet
 
 #define USE_MODULE_ETHERNETCOM false
 
+
 //system variables, do not edit this
 #if USE_MODULE_ETHERNETCOM == true
+
+  /** Support for SPI, needed if using an Ethernet shield **/
+  #include <SPI.h>
+  
+  /** Support for Wiznet Ethernet **/
+  #include <Ethernet.h>
+  
+  /** Wiznet library that provides additional configuration options for Ethernet **/
+  #include <utility/w5100.h>
+
+  //do not edit these, system variables
   int commandBufferPositionEthernet = 0;
   boolean commandBufferReadyToProcessEthernet = false;
-  char commandBufferEthernet[maxBufferSize];
+  char commandBufferEthernet[maxBufferSize];  
+  EthernetClient client; //define client
+  
 #endif
 
-//define client
-#if USE_MODULE_ETHERNETCOM == true  
-  EthernetClient client;
+/*********************************************************** 
+
+Module - Ethernet Communication
+
+Device will send and receive commands over Ethernet
+
+***********************************************************/
+
+#define USE_MODULE_ETHERNETSERVER false
+
+
+#if USE_MODULE_ETHERNETSERVER == true  
+  //fix-me: add server capability for ethernet
 #endif
 
 
@@ -173,12 +181,13 @@ Device will send and receive commands over Serial interface defined for communic
 
 #define USE_MODULE_SERIALCOM true
 
-#define SERIALCOM Serial1 // Teensy++ or Arduino devices with multiple Serial interfaces
-//#define SERIALCOM Serial // ArduinoUno and devices with a single Serial interface
+
+#define SERIALCOM Serial1 // Teensy++ or Arduino devices with hardware serial/UART interfaces
+//#define SERIALCOM Serial // Arduino Uno and devices without hardware serial/UART interface
 #define SERIALCOM_BAUD_RATE 115200
 
-//system variables, do not edit this
 #if USE_MODULE_SERIALCOM == true
+  //do not edit these, system variables
   int commandBufferPositionSerial = 0;
   boolean commandBufferReadyToProcessSerial = false;
   char commandBufferSerial[maxBufferSize];
@@ -194,7 +203,16 @@ If using the SERIALCOM module, you can specify whether SERIALCOM should use the 
 ***********************************************************/
 
 #define USE_MODULE_SERIALCOM_SOFTWARESERIAL false
-//SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9
+
+
+#if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true
+
+  /** Support for Software Serial interfaces, useful when working with a limited number of serial interfaces **/
+  #include <SoftwareSerial.h>
+  
+  SoftwareSerial softSerial(8, 9); // RX on 8, TX on 9. Configured for SparkFun Electric Imp shield
+
+#endif
 
 
 /*********************************************************** 
@@ -206,7 +224,17 @@ If using a DS1307 RTC
 ***********************************************************/
 
 #define USE_MODULE_RTCDS1307 false
-//#define DS1307_ADDRESS 0x68 //Wire address for the DS1307 RTC
+
+
+#if USE_MODULE_RTCDS1307 == true
+
+  #define DS1307_ADDRESS 0x68 //Wire address for the DS1307 RTC
+
+  /** Support for DS1307 RTC **/
+  #include <DS1307RTC.h> //check under ../libraries for this library
+
+#endif
+
 
 
 /*********************************************************** 
@@ -219,6 +247,7 @@ If using an SD to buffer communications
 
 #define USE_MODULE_SD false
 
+
 /*
 On the Ethernet Shield, CS is pin 4. Note that even if it's not
 used as the CS pin, the hardware CS pin (10 on most Arduino boards,
@@ -226,12 +255,19 @@ used as the CS pin, the hardware CS pin (10 on most Arduino boards,
 functions will not work.
 */
 #if USE_MODULE_SD == true
+
+  /** Read/Write to SD card **/
+  #include <SD.h>
+
   const int chipSelect = 4;
   const int hardwareSelect = 14; //Goldilocks
   //const int hardwareSelect = 10;  //Arduino Ethernet Shield R3
+  
+  //do not edit these, system variables
   Sd2Card card;
   SdVolume volume;
   SdFile root;
+  
 #endif
 
 
@@ -245,9 +281,12 @@ Use the AVR built-in watchdog timer
 
 #define USE_MODULE_WATCHDOG false       //use the watchdog timer
 
+
 #if USE_MODULE_WATCHDOG == true
+
   /** Watchdog timer **/
   #include <avr/wdt.h>
+  
 #endif
 
 
@@ -283,17 +322,25 @@ const char commandStringTestSD[]              = "t:sd";        //
 const char commandStringTestZones[]           = "t:zones";     //
 const char commandStringTestLoadConfig[]      = "t:config";    //
 
-boolean configInProgress = false;    //will stop various processes while set to true
+/** heartbeat **/
+boolean heartBeatOnline = false;       //set to true when a heartbeat response is received within the heartBeatDelayWait period
+boolean heartBeatInProgress = false;   //if we are in the middle of waiting for a heartbeat response
+time_t heartBeatSent;                  //when the current heartbeat was sent
+time_t heartBeatLast;                  //when was the last time we successfully received a heartbeat
 
-unsigned long sensorCheckLast = 0;   //the last time we checked for sensor data
-boolean heartBeatOnline = false;     //set to true when a heartbeat response is received within the heartBeatDelayWait period
-boolean heartBeatInProgress = false; //if we are in the middle of waiting for a heartbeat response
-time_t heartBeatSent;                //when the current heartbeat was sent
-time_t heartBeatLast;                //when was the last time we successfully received a heartbeat
-
-boolean timeSyncInProgress = false;
+/** time sync **/
+boolean timeSyncInProgress = false;    //
 boolean timeSynced = false;
 time_t timeSyncedDateTime;
+
+/** configuration **/
+boolean configInProgress = false;      //will stop various processes while set to true to ensure stability in processing configuration changes
+
+/** sensors  **/
+unsigned long sensorCheckLast = 0;     //the last time we checked for sensor data
+
+/** reset **/
+void(* restart) (void) = 0; //declare reset function @ address 0\
 
 //schedule structure, managed by config structure
 struct Schedule{
@@ -370,8 +417,6 @@ struct ConfigStore{
   #endif
 };
 
-void(* restart) (void) = 0; //declare reset function @ address 0\
-
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -407,7 +452,9 @@ void setup() {
   #if USE_MODULE_SD == true
     initSd(); //if using an SD card for buffering communications
   #endif
-  initRtc(); //iniatilize RTC
+  #if USE_MODULE_DS1307RTC == true
+    initRtc(); //iniatilize RTC
+  #endif
   initController(); //initalize sensors, zones and schedule
   
   #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true 
@@ -517,7 +564,7 @@ void loop(){
   
     //check sensors
     checkSensors(timeLocal);
-      
+    
     //check schedules
     checkSchedules(timeLocal);
   
