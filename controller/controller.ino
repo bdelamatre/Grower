@@ -360,7 +360,15 @@ void(* restart) (void) = 0; //declare reset function @ address 0\
   SdFile root;
 #endif
 
-//schedule structure, managed by config structure
+/*********************************************************** 
+
+Data Structures
+
+Do not edit these for any reason
+
+***********************************************************/
+
+/** schedule structure, managed by config structure **/
 struct Schedule{
   char name[maxNameLength];
   int type;                      //0=off, 1=timer, 2=soil moisture, 3=temperature
@@ -376,7 +384,7 @@ struct Schedule{
   int isRunning;                 //0=no,1=yes
 };
 
-//zone structure, managed by config structure
+/** zone structure, managed by config structure **/
 struct Zone{
   char name[maxNameLength];
   int type; //0=off, 1=5v relay
@@ -389,15 +397,14 @@ struct Zone{
   int statusSafetyOff;
 };
 
-//sensor structure, managed by config structure
+/** sensor structure, managed by config structure **/
 struct Sensor{
   char name[maxNameLength];
-  int type; //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light  
+  int type;                         //0=off, 1=soil moisture (analog), 2=soil temperature(DS18B20), 3=air temperature (DHT22), 4=light  
   int pin;
   int pin2;
-  int frequencyCheckSeconds; //0=every loop
-  int frequencyLogSeconds; //0=every log
-  //int enabled;
+  int frequencyCheckSeconds;        //0=every loop
+  int frequencyLogSeconds;          //0=every log
   unsigned long statusValue;
   unsigned long statusValue2;
   unsigned long statusLastChecked;
@@ -436,44 +443,46 @@ struct ConfigStore{
 };
 
 
-// the setup routine runs once when you press reset:
+/*********************************************************** 
+
+Setup
+
+The setup routine runs once when you press reset
+
+***********************************************************/
+
 void setup() {
     
-  //start wire
-  Wire.begin();
+  Wire.begin();                                      //start wire
   
   #if USE_MODULE_SERIALMONITOR == true
-    //start serial connection for debugging output
-    SERIALMONITOR.begin(SERIALMONITOR_BAUD_RATE);
+    SERIALMONITOR.begin(SERIALMONITOR_BAUD_RATE);    //start serial connection for debugging output
   #endif
   
   #if USE_MODULE_SERIALCOM == true
     #if USE_MODULE_SERIALCOM_SOFTWARESERIAL == true  
-      //start software serial port for server communication
-      softSerial.begin(SERIALCOM_BAUD_RATE);
+      softSerial.begin(SERIALCOM_BAUD_RATE);        //start software serial port for server communication
     #else
-      //start serial port for server communication
-      SERIALCOM.begin(SERIALCOM_BAUD_RATE);
+      SERIALCOM.begin(SERIALCOM_BAUD_RATE);         //start serial port for server communication
     #endif
   #endif
   
   #if DEBUG == true && USE_MODULE_SERIALMONITOR == true  
     printAvailableMemory();
-    //glamour banner
-    printBanner();
+    printBanner();                                  //glamour banner
   #endif
   
-  loadConfig(); //load configuration from EEPROM
+  loadConfig();                                     //load configuration from EEPROM
   #if USE_MODULE_ETHERNETCOM == true
-    initEthernet(); //if using Ethernet for communication
+    initEthernet();                                 //if using Ethernet for communication
   #endif
   #if USE_MODULE_SD == true
-    initSd(); //if using an SD card for buffering communications
+    initSd();                                       //if using an SD card for buffering communications
   #endif
   #if USE_MODULE_DS1307RTC == true
-    initRtc(); //iniatilize RTC
+    initRtc();                                      //iniatilize RTC
   #endif
-  initController(); //initalize sensors, zones and schedule
+  initController();                                 //initalize sensors, zones and schedule
   
   #if DEBUG ==  true && USE_MODULE_SERIALMONITOR == true 
     printBreak();
@@ -485,16 +494,23 @@ void setup() {
   #endif
 
   #if USE_MODULE_WATCHDOG == true
-    //watchdog, 8 seconds
-    wdt_enable(WDTO_8S);
+    wdt_enable(WDTO_8S);                            //watchdog, 8 seconds
   #endif
 
 }
 
+
+/*********************************************************** 
+
+Loop
+
+runs over and over again forever
+
+***********************************************************/
+
 FLASH_STRING(stringTimeSync,"[TIME] initial sync");
 FLASH_STRING(stringHeartBeatOffline,"[HEARTBEAT] [OFFLINE]");
 
-//  loop - runs over and over again forever:
 void loop(){
       
   #if USE_MODULE_ETHERNETCOM == true
